@@ -369,7 +369,7 @@ const CFG = {
   HP_REGEN: 0.02,
   DAY_LENGTH: 240,     // 秒/天(4分钟)
   SHARK_ATTACK_INTERVAL: 75, // 秒(更久才攻击)
-  FLOAT_SPAWN_INTERVAL: 2.2, // 秒
+  FLOAT_SPAWN_INTERVAL: 1.6, // 秒
 };
 
 // 资源定义
@@ -597,12 +597,13 @@ function payItems(cost){
 
 // ---------- 漂浮物系统 ----------
 const FLOAT_TYPES = [
-  {type:'plank',  w:30, color:'#c08850'},
-  {type:'plastic',w:25, color:'#e8e8e8'},
-  {type:'leaf',   w:22, color:'#5cb85c'},
-  {type:'scrap',  w:12, color:'#888'},
-  {type:'barrel', w:6,  color:'#8b6914'}, // 木桶含多种资源
+  {type:'plank',  w:28, color:'#c08850'},
+  {type:'plastic',w:22, color:'#e8e8e8'},
+  {type:'leaf',   w:20, color:'#5cb85c'},
+  {type:'scrap',  w:18, color:'#888'},
+  {type:'barrel', w:8,  color:'#8b6914'}, // 木桶含多种资源
   {type:'vine',   w:8,  color:'#4a9a4a'},
+  {type:'rawfish',w:12, color:'#7fb8d4'}, // 漂浮的鱼，可直接获取食物
 ];
 function spawnFloat(){
   let total = FLOAT_TYPES.reduce((s,f)=>s+f.w,0);
@@ -610,13 +611,13 @@ function spawnFloat(){
   for(let f of FLOAT_TYPES){ r-=f.w; if(r<=0){type=f.type;break;} }
   // 从屏幕边缘外生成，向木筏方向漂
   let ang = Math.random()*TAU;
-  let d = Math.max(G.W,G.H)*0.65;
+  let d = Math.max(G.W,G.H)*0.5;
   let x = G.raftCenter.x + Math.cos(ang)*d;
   let y = G.raftCenter.y + Math.sin(ang)*d;
   G.floats.push({
     x,y, type, r: rand(20,28),
-    vx: -Math.cos(ang)*rand(0.04,0.12) + rand(-0.03,0.03),
-    vy: -Math.sin(ang)*rand(0.04,0.12) + rand(-0.03,0.03),
+    vx: -Math.cos(ang)*rand(0.35,0.7) + rand(-0.05,0.05),
+    vy: -Math.sin(ang)*rand(0.35,0.7) + rand(-0.05,0.05),
     bob: Math.random()*TAU, rot: Math.random()*TAU,
     caught:false,
   });
@@ -698,8 +699,8 @@ function collectFloat(f){
   if(f.type==='barrel'){
     // 木桶含多种资源
     let n = randi(2,4);
-    let pool = ['plank','plastic','leaf','scrap'];
-    for(let i=0;i<n;i++){ let t=pool[randi(0,3)]; addItem(t,1); G.stats.collected++; }
+    let pool = ['plank','plastic','leaf','scrap','scrap','rawfish'];
+    for(let i=0;i<n;i++){ let t=pool[randi(0,pool.length-1)]; addItem(t,1); G.stats.collected++; }
     toast('🛢️ 木桶：获得多种资源！','good');
   } else {
     addItem(f.type,1);
@@ -1605,6 +1606,31 @@ function drawFloat(ctx,f){
     ctx.fillStyle='#6abc4a';
     ctx.beginPath(); ctx.ellipse(-R*0.4,-R*0.55,R*0.25,R*0.12,0.5,0,TAU);
     ctx.ellipse(R*0.5,R*0.3,R*0.2,R*0.1,-0.5,0,TAU); ctx.fill();
+  } else if(f.type==='rawfish'){
+    // 鱼 - 侧视图
+    let g=ctx.createLinearGradient(0,-R*0.4,0,R*0.4);
+    g.addColorStop(0,'#9fd0e8'); g.addColorStop(0.5,'#7fb8d4'); g.addColorStop(1,'#5a9ab8');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.ellipse(0,0,R*0.9,R*0.45,Math.sin(f.bob)*0.15,0,TAU); ctx.fill();
+    // 尾巴
+    ctx.fillStyle='#5a9ab8';
+    ctx.beginPath();
+    ctx.moveTo(-R*0.85,0);
+    ctx.lineTo(-R*1.25,-R*0.35);
+    ctx.lineTo(-R*1.15,0);
+    ctx.lineTo(-R*1.25,R*0.35);
+    ctx.closePath(); ctx.fill();
+    // 鳍
+    ctx.fillStyle='rgba(90,154,184,0.7)';
+    ctx.beginPath(); ctx.moveTo(0,-R*0.4); ctx.lineTo(-R*0.15,-R*0.65); ctx.lineTo(R*0.1,-R*0.4); ctx.fill();
+    // 眼睛
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(R*0.45,-R*0.1,R*0.13,0,TAU); ctx.fill();
+    ctx.fillStyle='#1a1a1a'; ctx.beginPath(); ctx.arc(R*0.48,-R*0.1,R*0.07,0,TAU); ctx.fill();
+    // 鳞片纹
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=0.8;
+    for(let i=-1;i<=1;i++){
+      ctx.beginPath(); ctx.arc(i*R*0.25,0,R*0.3,-Math.PI*0.6,-Math.PI*0.4); ctx.stroke();
+    }
   } else {
     ctx.fillStyle='#ccc'; ctx.beginPath(); ctx.arc(0,0,R*0.7,0,TAU); ctx.fill();
     ctx.strokeStyle='#999'; ctx.lineWidth=1.5; ctx.stroke();
@@ -2267,6 +2293,10 @@ function drawHook(ctx){
     } else if(f.type==='vine'){
       ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(h.x+ox-3,h.y+oy-2); ctx.quadraticCurveTo(h.x+ox,h.y+oy+2,h.x+ox+3,h.y+oy-1); ctx.stroke();
+    } else if(f.type==='rawfish'){
+      ctx.beginPath(); ctx.ellipse(h.x+ox,h.y+oy,5,3,0,0,TAU); ctx.fill();
+      ctx.fillStyle='#5a9ab8'; ctx.beginPath();
+      ctx.moveTo(h.x+ox-5,h.y+oy); ctx.lineTo(h.x+ox-8,h.y+oy-3); ctx.lineTo(h.x+ox-7,h.y+oy); ctx.lineTo(h.x+ox-8,h.y+oy+3); ctx.fill();
     } else {
       ctx.beginPath(); ctx.arc(h.x+ox,h.y+oy,3,0,TAU); ctx.fill();
     }
@@ -2541,6 +2571,18 @@ function startGame(){
   spawnShark();
   G.shark.attackTimer = CFG.SHARK_ATTACK_INTERVAL;
   addItem('plank',4); addItem('leaf',2); addItem('plastic',2);
+  // 初始生成一批靠近木筏的资源
+  for(let i=0;i<8;i++){
+    let ang=Math.random()*TAU;
+    let d=rand(120,300);
+    let types=['plank','plastic','leaf','scrap','scrap','rawfish','barrel','vine'];
+    let type=types[randi(0,types.length-1)];
+    G.floats.push({
+      x:Math.cos(ang)*d, y:Math.sin(ang)*d, type, r:rand(20,28),
+      vx:-Math.cos(ang)*rand(0.35,0.7), vy:-Math.sin(ang)*rand(0.35,0.7),
+      bob:Math.random()*TAU, rot:Math.random()*TAU, caught:false,
+    });
+  }
   // UI
   $('startScreen').classList.add('hidden');
   $('endScreen').classList.add('hidden');
