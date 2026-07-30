@@ -493,7 +493,7 @@ const G = {
   inventory:{},
   tool:'hook',
   toolLvls:{hook:1, spear:0},
-  player:{x:0,y:0,vx:0,vy:0,r:14,facing:0,walkAnim:0},
+  player:{x:0,y:0,vx:0,vy:0,r:14,facing:-Math.PI/2,walkAnim:0},
   raft:[], // {gx,gy,floor:'wood'/'metal',build:null,hp:100}
   raftCenter:{x:0,y:0},
   floats:[], // 漂浮物
@@ -510,7 +510,8 @@ const G = {
   achievements:new Set(),
   stats:{days:1, collected:0, built:0, killed:0, crafted:0},
   input:{keys:{}, mouseX:0, mouseY:0, mouseDown:false,
-    joyActive:false, joyDX:0, joyDY:0, touchThrow:false, touchInteract:false},
+    joyActive:false, joyDX:0, joyDY:0, touchThrow:false, touchInteract:false,
+    isTouch:false, lastMoveAng:-Math.PI/2},
   selectedBuild:null,
   lastFloatSpawn:0,
   shake:0,
@@ -644,8 +645,8 @@ function throwHook(){
   if(G.hook && G.hook.state!=='idle') return;
   // 瞄准方向
   let tx, ty;
-  if(G.input.touchThrow || G.input.joyActive){
-    // 手机端：朝玩家面向方向
+  if(G.input.isTouch || G.input.joyActive){
+    // 手机端：朝玩家最后移动方向
     tx = G.player.x + Math.cos(G.player.facing)*CFG.HOOK_RANGE;
     ty = G.player.y + Math.sin(G.player.facing)*CFG.HOOK_RANGE;
   } else {
@@ -1115,6 +1116,7 @@ function updatePlayer(dt){
   if(len>0.1){
     mx/=len; my/=len;
     G.player.facing=Math.atan2(my,mx);
+    G.input.lastMoveAng=G.player.facing;
     G.player.walkAnim+=0.2;
   }
   let spd=CFG.PLAYER_SPEED;
@@ -1123,8 +1125,8 @@ function updatePlayer(dt){
   if(isOnRaft(nx,G.player.y)) G.player.x=nx;
   if(isOnRaft(G.player.x,ny)) G.player.y=ny;
   // 限制在木筏范围内(不能掉海)
-  // 玩家面向跟随鼠标(电脑端)
-  if(!G.input.joyActive && !G.input.touchThrow){
+  // 玩家面向跟随鼠标(仅电脑端非触屏)
+  if(!G.input.isTouch && !G.input.joyActive && !G.input.touchThrow){
     let wx=G.input.mouseX+G.cam.x, wy=G.input.mouseY+G.cam.y;
     G.player.facing=Math.atan2(wy-G.player.y,wx-G.player.x);
   }
@@ -2525,7 +2527,7 @@ function startGame(){
   G.inventory={};
   G.toolLvls={hook:1, spear:0};
   G.tool='hook';
-  G.player={x:0,y:0,vx:0,vy:0,r:14,facing:0,walkAnim:0,hp:100,hunger:100,thirst:100};
+  G.player={x:0,y:0,vx:0,vy:0,r:14,facing:-Math.PI/2,walkAnim:0,hp:100,hunger:100,thirst:100};
   G.raft=[]; G.floats=[]; G.creatures=[]; G.builds={}; G.particles=[]; G.rainDrops=[];
   G.hook=null; G.shark=null; G.island=null; G.achievements=new Set();
   G.stats={days:1,collected:0,built:0,killed:0,crafted:0};
@@ -2598,6 +2600,7 @@ function initInput(){
   // 触控(除了摇杆和按钮区域)
   G.canvas.addEventListener('touchstart',e=>{
     if(G.state!=='playing') return;
+    G.input.isTouch=true;
     // 如果触摸在控制区域，不处理
     if(e.target.closest('#mobileControls')) return;
     if(G.selectedBuild){
@@ -2611,6 +2614,7 @@ function initInput(){
     let t=e.touches[0];
     let wx=t.clientX+G.cam.x, wy=t.clientY+G.cam.y;
     G.player.facing=Math.atan2(wy-G.player.y,wx-G.player.x);
+    G.input.lastMoveAng=G.player.facing;
     if(G.tool==='hook') throwHook();
     else if(G.tool==='spear') attackShark();
   });
@@ -2619,6 +2623,7 @@ function initInput(){
   let joyRect;
   function joyStart(e){
     e.preventDefault();
+    G.input.isTouch=true;
     joyRect=joy.getBoundingClientRect();
     G.input.joyActive=true;
     joyMove(e);
