@@ -451,6 +451,13 @@ const BUILDS = {
   antenna_b:{name:'天线塔',icon:'📡',cost:{plank:3,antenna:1,metal:2,bolt:2},cat:'科技',desc:'放置天线，增强信号(主线)'},
   sail_b:   {name:'帆架',icon:'⛵',cost:{plank:6,sail:1,rope:4},cat:'科技',desc:'放置帆，可改变航行方向(主线)'},
   beacon_b: {name:'信标台',icon:'🟢',cost:{plank:4,beacon:1,circuit:2},cat:'科技',desc:'放置信标，呼叫救援(主线终局)'},
+  // 房屋建筑
+  wall:     {name:'木墙',icon:'🧱',cost:{plank:4,nail:2},cat:'房屋',desc:'建造墙壁，组成房屋骨架'},
+  wall_metal:{name:'金属墙',icon:'🏦',cost:{plank:2,metal:2,bolt:2},cat:'房屋',desc:'坚固金属墙，防御更强'},
+  roof:     {name:'屋顶',icon:'🏠',cost:{plank:6,leaf:4,rope:2},cat:'房屋',desc:'建造屋顶，遮风挡雨'},
+  door:     {name:'木门',icon:'🚪',cost:{plank:4,nail:2,rope:1},cat:'房屋',desc:'安装门，进出房屋'},
+  window:   {name:'窗户',icon:'🪟',cost:{plank:3,plastic:2},cat:'房屋',desc:'安装窗户，采光通风'},
+  floor_house:{name:'房屋地板',icon:'🟫',cost:{plank:3,nail:1},cat:'房屋',desc:'室内地板，铺在房屋下方'},
 };
 
 // ---------- 主线任务系统 ----------
@@ -1833,6 +1840,69 @@ function drawShark(ctx,s){
 function drawRaft(ctx){
   let tiles=[...G.raft].sort((a,b)=>a.gy-b.gy);
   let ts=CFG.TILE;
+  // 2.5D: 先绘制木筏侧面厚度(底部)
+  let bottomRows={};
+  for(let t of tiles){
+    let key=t.gy;
+    if(!bottomRows[key]) bottomRows[key]=[];
+    bottomRows[key].push(t);
+  }
+  for(let gyStr in bottomRows){
+    let rowTiles=bottomRows[gyStr].sort((a,b)=>a.gx-b.gx);
+    let gy=parseInt(gyStr);
+    // 检查下一行是否有木筏
+    let hasNext = G.raft.some(t=>t.gy===gy+1);
+    if(!hasNext){
+      // 绘制侧面厚度
+      for(let t of rowTiles){
+        let w=tileToWorld(t.gx,t.gy);
+        let x=w.x-ts/2, y=w.y-ts/2;
+        let sideH=10;
+        let sg=ctx.createLinearGradient(0,y+ts,0,y+ts+sideH);
+        if(t.floor==='metal'){
+          sg.addColorStop(0,'#6a727a'); sg.addColorStop(1,'#3a424a');
+        } else {
+          sg.addColorStop(0,'#985e30'); sg.addColorStop(1,'#5a3818');
+        }
+        ctx.fillStyle=sg;
+        ctx.beginPath();
+        ctx.moveTo(x,y+ts); ctx.lineTo(x+ts,y+ts);
+        ctx.lineTo(x+ts,y+ts+sideH); ctx.lineTo(x,y+ts+sideH);
+        ctx.closePath(); ctx.fill();
+        // 侧面木纹
+        ctx.strokeStyle=t.floor==='metal'?'rgba(40,48,56,0.5)':'rgba(60,30,10,0.4)';
+        ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(x+ts*0.33,y+ts); ctx.lineTo(x+ts*0.33,y+ts+sideH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x+ts*0.66,y+ts); ctx.lineTo(x+ts*0.66,y+ts+sideH); ctx.stroke();
+      }
+    }
+    // 绘制左右侧面
+    for(let t of rowTiles){
+      let w=tileToWorld(t.gx,t.gy);
+      let x=w.x-ts/2, y=w.y-ts/2;
+      let hasLeft = G.raft.some(t2=>t2.gx===t.gx-1 && t2.gy===t.gy);
+      let hasRight = G.raft.some(t2=>t2.gx===t.gx+1 && t2.gy===t.gy);
+      let sideH=10;
+      if(!hasLeft){
+        let sg=ctx.createLinearGradient(x,y+ts,x,y+ts+sideH);
+        sg.addColorStop(0, t.floor==='metal'?'#5a626a':'#7a4820'); sg.addColorStop(1, t.floor==='metal'?'#2a323a':'#4a2810');
+        ctx.fillStyle=sg;
+        ctx.beginPath();
+        ctx.moveTo(x,y+ts); ctx.lineTo(x-3,y+ts+sideH*0.5);
+        ctx.lineTo(x-3,y+ts+sideH); ctx.lineTo(x,y+ts+sideH);
+        ctx.closePath(); ctx.fill();
+      }
+      if(!hasRight){
+        let sg=ctx.createLinearGradient(x+ts,y+ts,x+ts,y+ts+sideH);
+        sg.addColorStop(0, t.floor==='metal'?'#5a626a':'#7a4820'); sg.addColorStop(1, t.floor==='metal'?'#2a323a':'#4a2810');
+        ctx.fillStyle=sg;
+        ctx.beginPath();
+        ctx.moveTo(x+ts,y+ts); ctx.lineTo(x+ts+3,y+ts+sideH*0.5);
+        ctx.lineTo(x+ts+3,y+ts+sideH); ctx.lineTo(x+ts,y+ts+sideH);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
   for(let t of tiles){
     let w=tileToWorld(t.gx,t.gy);
     let x=w.x-ts/2, y=w.y-ts/2;
@@ -2099,6 +2169,112 @@ function drawBuild(ctx,x,y,type,data){
       let bg2=ctx.createRadialGradient(0,-s*0.3,0,0,-s*0.3,15);
       bg2.addColorStop(0,'rgba(0,255,136,0.5)'); bg2.addColorStop(1,'rgba(0,255,136,0)');
       ctx.fillStyle=bg2; ctx.beginPath(); ctx.arc(0,-s*0.3,15,0,TAU); ctx.fill(); ctx.restore();
+    }
+  } else if(type==='wall' || type==='wall_metal'){
+    // 2.5D 立体墙壁
+    let isMetal = type==='wall_metal';
+    let wallH = s*0.7;
+    let wallW = s*0.85;
+    // 侧面(右)
+    ctx.fillStyle = isMetal?'#4a5a6a':'#7a5828';
+    ctx.beginPath();
+    ctx.moveTo(wallW*0.5,-wallH); ctx.lineTo(wallW*0.5+6,-wallH-3);
+    ctx.lineTo(wallW*0.5+6,s*0.05-3); ctx.lineTo(wallW*0.5,s*0.05);
+    ctx.closePath(); ctx.fill();
+    // 正面
+    let wg=ctx.createLinearGradient(0,-wallH,0,s*0.05);
+    if(isMetal){
+      wg.addColorStop(0,'#8a9aaa'); wg.addColorStop(0.5,'#6a7a8a'); wg.addColorStop(1,'#5a6a7a');
+    } else {
+      wg.addColorStop(0,'#b88858'); wg.addColorStop(0.5,'#a07848'); wg.addColorStop(1,'#8a6838');
+    }
+    ctx.fillStyle=wg;
+    ctx.fillRect(-wallW*0.5,-wallH,wallW,wallH+s*0.05);
+    ctx.strokeStyle = isMetal?'#3a4a5a':'#5a3818'; ctx.lineWidth=2;
+    ctx.strokeRect(-wallW*0.5,-wallH,wallW,wallH+s*0.05);
+    // 木纹/金属纹
+    ctx.strokeStyle = isMetal?'rgba(60,70,80,0.4)':'rgba(90,56,24,0.3)'; ctx.lineWidth=1;
+    for(let i=1;i<4;i++){
+      ctx.beginPath(); ctx.moveTo(-wallW*0.5,-wallH+i*wallH/4); ctx.lineTo(wallW*0.5,-wallH+i*wallH/4); ctx.stroke();
+    }
+    // 顶部高光
+    ctx.fillStyle = isMetal?'rgba(180,200,220,0.3)':'rgba(200,160,100,0.3)';
+    ctx.fillRect(-wallW*0.5,-wallH,wallW,3);
+  } else if(type==='roof'){
+    // 2.5D 人字形屋顶
+    let roofW = s*0.9, roofH = s*0.5;
+    // 左斜面
+    let lg=ctx.createLinearGradient(-roofW*0.5,0,0,-roofH);
+    lg.addColorStop(0,'#7a5028'); lg.addColorStop(1,'#a07038');
+    ctx.fillStyle=lg;
+    ctx.beginPath();
+    ctx.moveTo(-roofW*0.5,s*0.05); ctx.lineTo(0,-roofH); ctx.lineTo(0,s*0.02); ctx.closePath(); ctx.fill();
+    // 右斜面
+    let rg=ctx.createLinearGradient(0,-roofH,roofW*0.5,0);
+    rg.addColorStop(0,'#b08048'); rg.addColorStop(1,'#8a6028');
+    ctx.fillStyle=rg;
+    ctx.beginPath();
+    ctx.moveTo(0,-roofH); ctx.lineTo(roofW*0.5,s*0.05); ctx.lineTo(0,s*0.02); ctx.closePath(); ctx.fill();
+    // 轮廓
+    ctx.strokeStyle='#5a3818'; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(-roofW*0.5,s*0.05); ctx.lineTo(0,-roofH); ctx.lineTo(roofW*0.5,s*0.05); ctx.stroke();
+    // 瓦片纹理
+    ctx.strokeStyle='rgba(90,56,24,0.3)'; ctx.lineWidth=1;
+    for(let i=1;i<4;i++){
+      let t=i/4;
+      ctx.beginPath(); ctx.moveTo(-roofW*0.5*(1-t),s*0.05-t*roofH-t*s*0.03); ctx.lineTo(0,-roofH*t+s*0.02*(1-t)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,-roofH*t+s*0.02*(1-t)); ctx.lineTo(roofW*0.5*(1-t),s*0.05-t*roofH-t*s*0.03); ctx.stroke();
+    }
+  } else if(type==='door'){
+    // 2.5D 门
+    let dh=s*0.65, dw=s*0.4;
+    // 门框
+    ctx.fillStyle='#5a3818'; ctx.fillRect(-dw*0.55,-dh-3,dw*1.1,dh+6);
+    // 门板
+    let dg=ctx.createLinearGradient(0,-dh,0,0);
+    dg.addColorStop(0,'#a07848'); dg.addColorStop(1,'#7a5828');
+    ctx.fillStyle=dg; ctx.fillRect(-dw*0.5,-dh,dw,dh);
+    ctx.strokeStyle='#5a3818'; ctx.lineWidth=2; ctx.strokeRect(-dw*0.5,-dh,dw,dh);
+    // 门板纹理
+    ctx.strokeStyle='rgba(90,56,24,0.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,-dh); ctx.lineTo(0,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-dw*0.5,-dh*0.5); ctx.lineTo(dw*0.5,-dh*0.5); ctx.stroke();
+    // 门把手
+    ctx.fillStyle='#c0a040'; ctx.beginPath(); ctx.arc(dw*0.3,-dh*0.4,3,0,TAU); ctx.fill();
+    ctx.strokeStyle='#8a7028'; ctx.lineWidth=1; ctx.stroke();
+  } else if(type==='window'){
+    // 2.5D 窗户
+    let ww=s*0.45, wh=s*0.45;
+    // 窗框
+    ctx.fillStyle='#5a3818'; ctx.fillRect(-ww*0.55,-wh-2,ww*1.1,wh+4);
+    // 玻璃(带反光)
+    let wg2=ctx.createLinearGradient(-ww*0.5,-wh,ww*0.5,0);
+    wg2.addColorStop(0,'rgba(120,180,220,0.7)'); wg2.addColorStop(0.5,'rgba(180,220,240,0.8)'); wg2.addColorStop(1,'rgba(120,180,220,0.6)');
+    ctx.fillStyle=wg2; ctx.fillRect(-ww*0.5,-wh,ww,wh);
+    // 窗格
+    ctx.strokeStyle='#5a3818'; ctx.lineWidth=2;
+    ctx.strokeRect(-ww*0.5,-wh,ww,wh);
+    ctx.beginPath(); ctx.moveTo(0,-wh); ctx.lineTo(0,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-ww*0.5,-wh*0.5); ctx.lineTo(ww*0.5,-wh*0.5); ctx.stroke();
+    // 反光
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    ctx.beginPath(); ctx.moveTo(-ww*0.4,-wh*0.9); ctx.lineTo(-ww*0.15,-wh*0.9); ctx.lineTo(-ww*0.3,-wh*0.1); ctx.lineTo(-ww*0.4,-wh*0.1); ctx.fill();
+  } else if(type==='floor_house'){
+    // 房屋地板
+    let fg=ctx.createLinearGradient(0,-s*0.4,0,s*0.2);
+    fg.addColorStop(0,'#b08850'); fg.addColorStop(1,'#9a7838');
+    ctx.fillStyle=fg; ctx.fillRect(-s*0.4,-s*0.35,s*0.8,s*0.55);
+    ctx.strokeStyle='#6a4818'; ctx.lineWidth=2; ctx.strokeRect(-s*0.4,-s*0.35,s*0.8,s*0.55);
+    // 木板纹
+    ctx.strokeStyle='rgba(90,56,24,0.3)'; ctx.lineWidth=1;
+    for(let i=1;i<4;i++){
+      ctx.beginPath(); ctx.moveTo(-s*0.4,-s*0.35+i*s*0.14); ctx.lineTo(s*0.4,-s*0.35+i*s*0.14); ctx.stroke();
+    }
+    // 钉子
+    ctx.fillStyle='#888';
+    for(let i=0;i<2;i++) for(let j=0;j<3;j++){
+      ctx.beginPath(); ctx.arc(-s*0.3+j*s*0.3, -s*0.28+i*s*0.38, 1.5, 0, TAU); ctx.fill();
     }
   }
   ctx.restore();
@@ -2421,7 +2597,9 @@ function updateCraftUI(cat){
     let can=hasItems(r.cost);
     let el=document.createElement('div');
     el.className='craft-item'+(can?'':' cant');
-    let name = r.isUpgrade ? r.desc : (r.out[Object.keys(r.out)[0]]?ITEMS[Object.keys(r.out)[0]].name:id);
+    let outKey=Object.keys(r.out)[0];
+    let outItem=ITEMS[outKey]||TOOLS[outKey];
+    let name = r.isUpgrade ? r.desc : (outItem?outItem.name:id);
     let costHtml=Object.entries(r.cost).map(([k,v])=>{
       let have=G.inventory[k]||0;
       return `<span class="${have>=v?'ok':'no'}">${ITEMS[k]?ITEMS[k].icon:''}${ITEMS[k]?ITEMS[k].name:k} ×${v}</span>`;
@@ -2444,6 +2622,7 @@ function craftItem(id){
   payItems(r.cost);
   if(r.isUpgrade==='hook'){ G.toolLvls.hook=r.lvl; toast('🪝 钩子升级到Lv'+r.lvl+'！','ach'); }
   else if(r.isUpgrade==='spear'){ G.toolLvls.spear=r.lvl; toast('🔱 矛升级到Lv'+r.lvl+'！','ach'); }
+  else if(id==='spear'){ G.toolLvls.spear=1; toast('🔱 制作木矛！现在可以攻击鲨鱼了','ach'); }
   else { for(let k in r.out) addItem(k, r.out[k]); }
   G.stats.crafted++;
   updateInventoryUI(); updateCraftUI(r.cat); updateHotbar();
@@ -2453,7 +2632,7 @@ function craftItem(id){
 function updateBuildUI(){
   let grid=$('buildGrid');
   // 按分类分组
-  let cats=['木筏','设施','科技'];
+  let cats=['木筏','房屋','设施','科技'];
   grid.innerHTML='';
   for(let cat of cats){
     let hasCat=false;
