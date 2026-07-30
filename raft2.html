@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>木筏求生2 - Raft Survival 2</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+html,body { width:100%; height:100%; overflow:hidden; background:#0a1a2a; font-family:'PingFang SC','Microsoft YaHei','Helvetica Neue',sans-serif; touch-action:none; }
+#gameCanvas { position:absolute; top:0; left:0; display:block; image-rendering:pixelated; }
+
+/* ====== 通用UI ====== */
+.hidden { display:none !important; }
+#uiLayer { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+#uiLayer > * { pointer-events:auto; }
+
+/* ====== 开始菜单 ====== */
+#startScreen {
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#0d3a5c 0%,#1a6b8a 50%,#2a9db8 100%); z-index:100;
+}
+#startScreen h1 {
+  font-size:clamp(38px,9vw,72px); color:#fff; text-shadow:0 4px 20px rgba(0,0,0,.5),0 0 30px rgba(100,200,255,.4);
+  letter-spacing:4px; margin-bottom:6px; font-weight:800;
+}
+#startScreen .subtitle { font-size:clamp(14px,3.5vw,20px); color:#aee4f0; margin-bottom:8px; letter-spacing:6px; }
+#startScreen .tag { font-size:clamp(11px,2.8vw,14px); color:#7fc4d8; margin-bottom:36px; }
+.menu-btn {
+  width:min(280px,72vw); padding:15px 0; margin:7px 0; font-size:clamp(16px,4vw,20px); font-weight:700;
+  color:#fff; background:linear-gradient(180deg,#2a9db8,#1a7a96); border:2px solid #5fd0e8; border-radius:14px;
+  cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.3); transition:transform .1s; text-align:center;
+}
+.menu-btn:active { transform:scale(.96); }
+.menu-btn.secondary { background:linear-gradient(180deg,#3a5a6c,#2a4a5c); border-color:#6a8a9c; font-size:clamp(13px,3.2vw,16px); padding:11px 0; }
+#helpBox {
+  width:min(560px,92vw); max-height:70vh; overflow-y:auto; background:rgba(8,28,42,.95); border:1px solid #2a6a8a;
+  border-radius:16px; padding:22px; color:#cde; font-size:clamp(12px,3vw,14px); line-height:1.8; display:none;
+}
+#helpBox h3 { color:#5fd0e8; margin-bottom:10px; font-size:clamp(15px,3.8vw,18px); }
+#helpBox b { color:#ffd966; }
+#helpClose { margin-top:16px; }
+
+/* ====== 顶部状态栏 ====== */
+#topBar {
+  position:absolute; top:0; left:0; right:0; display:flex; align-items:center; gap:8px;
+  padding:6px 10px; padding-top:max(6px,env(safe-area-inset-top));
+  background:linear-gradient(180deg,rgba(8,24,38,.85),rgba(8,24,38,0)); flex-wrap:wrap;
+}
+.stat-pill {
+  display:flex; align-items:center; gap:5px; background:rgba(8,24,38,.7); border:1px solid rgba(95,208,232,.25);
+  border-radius:20px; padding:4px 10px; font-size:12px; color:#cde;
+}
+.stat-bar { width:54px; height:8px; background:rgba(0,0,0,.4); border-radius:4px; overflow:hidden; }
+.stat-bar > div { height:100%; border-radius:4px; transition:width .3s; }
+#hpBar > div { background:linear-gradient(90deg,#e74c3c,#ff6b5e); }
+#hungerBar > div { background:linear-gradient(90deg,#e67e22,#f39c12); }
+#thirstBar > div { background:linear-gradient(90deg,#3498db,#5dade2); }
+#dayInfo { color:#ffd966; font-weight:700; }
+#weatherInfo { font-size:11px; }
+
+/* ====== 底部快捷栏 ====== */
+#hotbar {
+  position:absolute; bottom:max(10px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  display:flex; gap:6px; background:rgba(8,24,38,.75); border:1px solid rgba(95,208,232,.25);
+  border-radius:12px; padding:6px;
+}
+.slot {
+  width:46px; height:46px; background:rgba(20,50,70,.6); border:2px solid transparent; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; position:relative;
+}
+.slot.active { border-color:#ffd966; box-shadow:0 0 10px rgba(255,217,102,.5); }
+.slot .count { position:absolute; bottom:1px; right:3px; font-size:10px; color:#fff; text-shadow:0 1px 2px #000; }
+.slot .key { position:absolute; top:1px; left:3px; font-size:8px; color:#7fc4d8; }
+
+/* ====== 功能按钮 ====== */
+#funcButtons { position:absolute; top:50px; right:10px; display:flex; flex-direction:column; gap:6px; }
+.fbtn {
+  width:42px; height:42px; border-radius:10px; background:rgba(8,24,38,.75); border:1px solid rgba(95,208,232,.3);
+  color:#cde; font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.fbtn:active { background:rgba(30,70,90,.85); }
+.fbtn .badge { position:absolute; top:-3px; right:-3px; background:#e74c3c; color:#fff; font-size:9px; border-radius:8px; padding:0 4px; }
+
+/* ====== 面板(背包/制作/建造) ====== */
+.panel {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(680px,94vw); max-height:80vh; background:rgba(10,30,44,.97); border:1px solid #2a6a8a;
+  border-radius:16px; padding:18px; overflow-y:auto; z-index:50; color:#cde;
+}
+.panel h2 { color:#5fd0e8; margin-bottom:12px; font-size:20px; display:flex; justify-content:space-between; align-items:center; }
+.panel .closeBtn { background:none; border:none; color:#e74c3c; font-size:26px; cursor:pointer; }
+.cat-tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+.cat-tab { padding:5px 14px; background:rgba(30,60,80,.6); border:1px solid rgba(95,208,232,.2); border-radius:8px; color:#9bc; font-size:13px; cursor:pointer; }
+.cat-tab.active { background:#1a7a96; color:#fff; border-color:#5fd0e8; }
+.craft-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+.craft-item {
+  background:rgba(20,50,70,.5); border:1px solid rgba(95,208,232,.15); border-radius:10px; padding:10px; cursor:pointer;
+}
+.craft-item:active { background:rgba(30,70,90,.7); }
+.craft-item .ci-name { font-size:14px; color:#ffd966; margin-bottom:4px; }
+.craft-item .ci-desc { font-size:11px; color:#8ab; margin-bottom:6px; line-height:1.4; }
+.craft-item .ci-cost { font-size:11px; color:#9bc; }
+.craft-item .ci-cost .ok { color:#2ecc71; }
+.craft-item .ci-cost .no { color:#e74c3c; }
+.craft-item.cant { opacity:.5; }
+
+/* 背包网格 */
+.inv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; }
+.inv-slot { background:rgba(20,50,70,.5); border:1px solid rgba(95,208,232,.15); border-radius:10px; padding:8px; text-align:center; }
+.inv-slot .is-icon { font-size:28px; }
+.inv-slot .is-name { font-size:11px; color:#cde; margin-top:3px; }
+.inv-slot .is-count { font-size:13px; color:#ffd966; font-weight:700; }
+
+/* ====== 手机控制 ====== */
+#mobileControls { position:absolute; inset:0; pointer-events:none; z-index:40; display:none; }
+#joystick {
+  position:absolute; bottom:80px; left:30px; width:120px; height:120px; border-radius:50%;
+  background:rgba(255,255,255,.08); border:2px solid rgba(255,255,255,.2); pointer-events:auto; touch-action:none;
+}
+#joystickKnob {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:50px; height:50px; border-radius:50%;
+  background:rgba(95,208,232,.5); border:2px solid #5fd0e8;
+}
+#actionButtons { position:absolute; bottom:80px; right:30px; display:flex; flex-direction:column; gap:14px; pointer-events:auto; }
+.act-btn {
+  width:64px; height:64px; border-radius:50%; background:rgba(26,122,150,.7); border:2px solid #5fd0e8;
+  color:#fff; font-size:26px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,.3); touch-action:none;
+}
+.act-btn:active { transform:scale(.9); background:rgba(36,152,180,.85); }
+.act-btn.throw { background:rgba(200,120,40,.7); border-color:#ffb84d; width:76px; height:76px; font-size:30px; }
+
+/* ====== 提示Toast ====== */
+#toastContainer { position:absolute; top:60px; left:50%; transform:translateX(-50%); z-index:60; display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none; }
+.toast {
+  background:rgba(8,24,38,.9); border:1px solid rgba(95,208,232,.3); border-radius:10px; padding:8px 16px;
+  color:#cde; font-size:13px; animation:toastIn .3s; white-space:nowrap;
+}
+.toast.good { border-color:#2ecc71; color:#2ecc71; }
+.toast.bad { border-color:#e74c3c; color:#ff6b5e; }
+.toast.ach { border-color:#ffd966; color:#ffd966; font-weight:700; }
+@keyframes toastIn { from{opacity:0;transform:translateY(-10px);} to{opacity:1;transform:translateY(0);} }
+
+/* ====== 死亡/胜利 ====== */
+#endScreen {
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(5,15,25,.92); z-index:90; color:#fff;
+}
+#endScreen h2 { font-size:clamp(28px,7vw,48px); margin-bottom:12px; }
+#endScreen .stats { font-size:15px; color:#9bc; margin-bottom:24px; text-align:center; line-height:2; }
+#endScreen .stats b { color:#ffd966; }
+
+/* 建造提示 */
+#buildHint {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(8,24,38,.9);
+  border:1px solid #2a6a8a; border-radius:10px; padding:12px 18px; color:#cde; font-size:13px; text-align:center; z-index:45; display:none;
+}
+
+/* ====== 主线任务追踪 ====== */
+#questTracker {
+  position:absolute; top:50px; left:10px; width:min(260px,60vw); background:rgba(8,24,38,.8);
+  border:1px solid rgba(255,217,102,.3); border-radius:12px; padding:10px 12px; z-index:30;
+  font-size:12px; color:#cde; backdrop-filter:blur(4px);
+}
+#questTracker.hidden { display:none; }
+#qtTitle { color:#ffd966; font-size:13px; font-weight:700; margin-bottom:4px; }
+#qtDesc { color:#8ab; font-size:11px; margin-bottom:6px; }
+#qtObj { color:#5fd0e8; font-size:12px; font-weight:600; display:flex; align-items:center; gap:4px; }
+#qtObj::before { content:'☐'; }
+#qtObj.done { color:#2ecc71; }
+#qtObj.done::before { content:'☑'; }
+#qtReward { color:#9bc; font-size:10px; margin-top:4px; }
+#qtProgress { width:100%; height:4px; background:rgba(0,0,0,.4); border-radius:2px; margin-top:6px; overflow:hidden; }
+#qtProgress > div { height:100%; background:linear-gradient(90deg,#ffd966,#ff8c00); border-radius:2px; transition:width .3s; }
+
+/* ====== 航行罗盘 ====== */
+#compass {
+  position:absolute; top:50%; left:14px; transform:translateY(-50%); width:48px; height:48px;
+  border-radius:50%; background:rgba(8,24,38,.8); border:2px solid rgba(255,217,102,.4);
+  display:none; z-index:30; align-items:center; justify-content:center;
+}
+#compassArrow { font-size:22px; color:#ffd966; transition:transform .3s; }
+
+/* ====== 胜利界面 ====== */
+#winScreen {
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,rgba(5,15,25,.9),rgba(10,40,60,.9)); z-index:95; color:#fff; text-align:center;
+}
+#winScreen h2 { font-size:clamp(30px,8vw,56px); color:#ffd966; text-shadow:0 0 30px rgba(255,217,102,.5); margin-bottom:8px; }
+#winScreen .win-sub { color:#5fd0e8; font-size:16px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<!-- UI层 -->
+<div id="uiLayer">
+  <!-- 顶部状态栏 -->
+  <div id="topBar" class="hidden">
+    <div class="stat-pill">❤️<div class="stat-bar" id="hpBar"><div style="width:100%"></div></div></div>
+    <div class="stat-pill">🍖<div class="stat-bar" id="hungerBar"><div style="width:100%"></div></div></div>
+    <div class="stat-pill">💧<div class="stat-bar" id="thirstBar"><div style="width:100%"></div></div></div>
+    <div class="stat-pill" id="dayInfo">☀️ 第1天</div>
+    <div class="stat-pill" id="timeInfo">🕐 06:00</div>
+    <div class="stat-pill" id="weatherInfo">☀️ 晴</div>
+  </div>
+
+  <!-- 功能按钮 -->
+  <div id="funcButtons" class="hidden">
+    <div class="fbtn" id="btnInventory" title="背包(B)">🎒</div>
+    <div class="fbtn" id="btnCraft" title="制作(C)">🔨</div>
+    <div class="fbtn" id="btnBuild" title="建造(Tab)">🏗️</div>
+    <div class="fbtn" id="btnQuest" title="任务(Q)">📋</div>
+    <div class="fbtn" id="btnPause" title="暂停">⏸️</div>
+  </div>
+
+  <!-- 主线任务追踪器 -->
+  <div id="questTracker" class="hidden">
+    <div id="qtTitle">第一章：漂流之初</div>
+    <div id="qtDesc">收集资源，建立基本生存保障</div>
+    <div id="qtObj">收集10个资源</div>
+    <div id="qtReward">奖励：4木板+2绳子</div>
+    <div id="qtProgress"><div style="width:0%"></div></div>
+  </div>
+
+  <!-- 航行罗盘 -->
+  <div id="compass"><span id="compassArrow">➤</span></div>
+
+  <!-- 底部快捷栏 -->
+  <div id="hotbar" class="hidden"></div>
+
+  <!-- 面板 -->
+  <div id="inventoryPanel" class="panel hidden">
+    <h2>🎒 背包 <button class="closeBtn" data-close>×</button></h2>
+    <div class="inv-grid" id="invGrid"></div>
+  </div>
+  <div id="craftPanel" class="panel hidden">
+    <h2>🔨 制作 <button class="closeBtn" data-close>×</button></h2>
+    <div class="cat-tabs" id="craftTabs"></div>
+    <div class="craft-grid" id="craftGrid"></div>
+  </div>
+  <div id="buildPanel" class="panel hidden">
+    <h2>🏗️ 建造 <button class="closeBtn" data-close>×</button></h2>
+    <div class="craft-grid" id="buildGrid"></div>
+  </div>
+
+  <!-- 手机控制 -->
+  <div id="mobileControls">
+    <div id="joystick"><div id="joystickKnob"></div></div>
+    <div id="actionButtons">
+      <div class="act-btn throw" id="btnThrow">🎣</div>
+      <div class="act-btn" id="btnInteract">✋</div>
+    </div>
+  </div>
+
+  <!-- 提示 -->
+  <div id="toastContainer"></div>
+  <div id="buildHint"></div>
+
+  <!-- 结束界面 -->
+  <div id="endScreen" class="hidden">
+    <h2 id="endTitle">☠️ 你没能活下去...</h2>
+    <div class="stats" id="endStats"></div>
+    <button class="menu-btn" id="endRestart">重新开始</button>
+  </div>
+
+  <!-- 胜利界面 -->
+  <div id="winScreen" class="hidden">
+    <h2>🎉 救援到来！</h2>
+    <div class="win-sub">你成功发出了求救信号，直升机接走了你</div>
+    <div class="stats" id="winStats" style="font-size:15px;color:#9bc;line-height:2;margin-bottom:24px;"></div>
+    <button class="menu-btn" id="winRestart">再玩一次</button>
+  </div>
+</div>
+
+<!-- 开始菜单 -->
+<div id="startScreen">
+  <h1>木筏求生2</h1>
+  <div class="subtitle">RAFT SURVIVAL 2</div>
+  <div class="tag">—— 续作·新天气·新海洋·新冒险 ——</div>
+  <button class="menu-btn" id="startBtn">▶ 开始游戏</button>
+  <button class="menu-btn secondary" id="helpBtn">📖 游戏说明</button>
+  <div id="helpBox">
+    <h3>🎮 操作方式</h3>
+    <b>电脑端：</b>WASD/方向键移动 · 鼠标瞄准 · 左键投钩 · E互动 · B背包 · C制作 · Tab建造 · Q任务 · 1-6切换工具<br>
+    <b>航行：</b>建造帆架后，按G升/降帆 · R/F调整航向 · E互动帆架也可切换<br>
+    <b>手机端：</b>左下摇杆移动 · 右下按钮投钩/互动 · 顶部按钮打开背包/制作/建造<br><br>
+    <h3>🪝 核心玩法</h3>
+    用钩子捕获海上漂浮的木板、塑料、棕榈叶等资源。管理<b>饥饿值</b>🍖和<b>口渴值</b>💧，否则生命值会下降。<br>
+    <b>扩建木筏</b>：制作木板后，在建造菜单放置地板扩展木筏。<br>
+    <b>生存设施</b>：建造蒸馏器获取淡水、烤架烹饪鱼肉、种植园种土豆、研究桌解锁配方。<br>
+    <b>防御鲨鱼</b>🦈：鲨鱼会定期啃咬木筏！用木矛攻击它，或建造加固地板保护木筏。<br><br>
+    <h3>📋 主线任务（新增！）</h3>
+    不再只是无尽收集！完成7章主线剧情，最终建造信标呼叫救援逃脱：<br>
+    <b>第一章</b>收集资源 → <b>第二章</b>建造设施 → <b>第三章</b>击败鲨鱼 → <b>第四章</b>研究科技<br>
+    → <b>第五章</b>信号追踪(接收器+天线) → <b>第六章</b>扬帆起航 → <b>终章</b>放置信标获救！<br><br>
+    <h3>🏗️ 丰富建造（新增！）</h3>
+    <b>生存设施</b>：蒸馏器、烤架、种植园、研究桌、收集网、矛架<br>
+    <b>新增设施</b>：储物箱(扩容)、床铺(睡觉回血)、熔炉(加速炼金属)、鸟巢(产蛋)<br>
+    <b>科技建筑</b>：接收器站、天线塔、帆架、信标台(需研究桌解锁)<br><br>
+    <h3>🌊 续集特性</h3>
+    <b>天气系统</b>：晴天、多云、雨天（自动收集淡水）、暴风雨（危险！）<br>
+    <b>昼夜循环</b>：夜晚视野受限，需要火把照明<br>
+    <b>航行系统</b>：建造帆架后可驾驶木筏航行，罗盘指引信号方向<br>
+    <b>升级系统</b>：钩子、矛、木筏均可升级强化<br>
+    <b>岛屿探索</b>：偶尔出现的岛屿藏有稀有资源<br>
+    <b>成就系统</b>：完成挑战解锁成就<br>
+    <b>更多生物</b>：海龟、水母、鲸鱼等海洋生物<br><br>
+    <h3>🏆 生存目标</h3>
+    尽可能长久地活下去，扩建你的海上家园，挑战生存天数纪录！
+    <button class="menu-btn secondary" id="helpClose" style="margin-top:16px">关闭</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 木筏求生2 - Raft Survival 2
+// ============================================================
+"use strict";
+
+// ---------- 工具函数 ----------
+const $ = id => document.getElementById(id);
+const rand = (a,b) => a + Math.random()*(b-a);
+const randi = (a,b) => Math.floor(rand(a,b+1));
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const dist = (x1,y1,x2,y2) => Math.hypot(x2-x1,y2-y1);
+const lerp = (a,b,t) => a+(b-a)*t;
+const TAU = Math.PI*2;
+
+// ---------- 游戏配置 ----------
+const CFG = {
+  TILE: 56,            // 木筏格子大小
+  PLAYER_SPEED: 2.6,
+  HOOK_SPEED: 7,
+  HOOK_RANGE: 320,
+  HUNGER_DECAY: 0.022, // 每帧
+  THIRST_DECAY: 0.034,
+  HP_REGEN: 0.01,
+  DAY_LENGTH: 180,     // 秒/天
+  SHARK_ATTACK_INTERVAL: 45, // 秒
+  FLOAT_SPAWN_INTERVAL: 1.4, // 秒
+};
+
+// 资源定义
+const ITEMS = {
+  plank:    {name:'木板',icon:'🪵',color:'#c08850'},
+  plastic:  {name:'塑料',icon:'🥤',color:'#e8e8e8'},
+  leaf:     {name:'棕榈叶',icon:'🌿',color:'#5cb85c'},
+  rope:     {name:'绳子',icon:'🧵',color:'#d4a574'},
+  scrap:    {name:'废铁',icon:'⚙️',color:'#888'},
+  nail:     {name:'钉子',icon:'📌',color:'#bbb'},
+  barrel:   {name:'木桶',icon:'🛢️',color:'#8b6914'},
+  potato:   {name:'土豆',icon:'🥔',color:'#c9a063'},
+  rawfish:  {name:'生鱼',icon:'🐟',color:'#7fb8d4'},
+  cookedfish:{name:'烤鱼',icon:'🐟',color:'#d4956b'},
+  water:    {name:'淡水',icon:'🥤',color:'#5dade2'},
+  vine:     {name:'藤蔓',icon:'🌱',color:'#4a9a4a'},
+  metal:    {name:'金属锭',icon:'🔩',color:'#a0a0b0'},
+  feather:  {name:'羽毛',icon:'🪶',color:'#ddd'},
+  pearl:    {name:'珍珠',icon:'⚪',color:'#f0e6d2'},
+  coral:    {name:'珊瑚',icon:'🪸',color:'#ff7f7f'},
+  seagrass: {name:'海草',icon:'🌿',color:'#2e8b57'},
+  torch:    {name:'火把',icon:'🔥',color:'#ff8c00'},
+  circuit:  {name:'电路板',icon:'🔌',color:'#4a9a5a'},
+  radio:    {name:'无线电',icon:'📻',color:'#556b8a'},
+  antenna:  {name:'天线',icon:'📡',color:'#a0a0b0'},
+  receiver: {name:'接收器',icon:'📺',color:'#4a5a7a'},
+  egg:      {name:'鸟蛋',icon:'🥚',color:'#f5e6c8'},
+  bolt:     {name:'螺栓',icon:'🔩',color:'#999'},
+  beacon:   {name:'信标',icon:'🟢',color:'#00ff88'},
+  treasure: {name:'宝藏',icon:'💎',color:'#ffd700'},
+  cookedegg:{name:'煎蛋',icon:'🍳',color:'#f5d6a0'},
+  sail:     {name:'帆',icon:'⛵',color:'#e8e8d8'},
+  compass:  {name:'指南针',icon:'🧭',color:'#a0a0b0'},
+};
+
+// 制作配方
+const RECIPES = {
+  rope:      {out:{rope:1}, cost:{leaf:2}, cat:'基础', desc:'用棕榈叶编织绳子'},
+  nail:      {out:{nail:1}, cost:{scrap:1}, cat:'基础', desc:'废铁打磨成钉子'},
+  cookedfish:{out:{cookedfish:1}, cost:{rawfish:1}, cat:'食物', desc:'烤制生鱼',needFire:true},
+  spear:     {out:{spear:1}, cost:{plank:3,rope:2,scrap:2}, cat:'工具', desc:'木矛，攻击鲨鱼'},
+  hook2:     {out:{}, cost:{scrap:3,rope:2}, cat:'工具', desc:'升级钩子(更远更快)',isUpgrade:'hook',lvl:2},
+  hook3:     {out:{}, cost:{metal:2,rope:3,scrap:3}, cat:'工具', desc:'升级钩子(金属钩)',isUpgrade:'hook',lvl:3},
+  spear2:    {out:{}, cost:{metal:2,plank:4,rope:2}, cat:'工具', desc:'升级矛(金属矛)',isUpgrade:'spear',lvl:2},
+  torch:     {out:{torch:1}, cost:{plank:2,rope:1,leaf:3}, cat:'工具', desc:'火把，夜晚照明'},
+  metal:     {out:{metal:1}, cost:{scrap:4}, cat:'基础', desc:'废铁熔炼成金属锭',needFire:true},
+  bolt:      {out:{bolt:2}, cost:{metal:1}, cat:'基础', desc:'金属锭打造成螺栓',needFire:true},
+  circuit:   {out:{circuit:1}, cost:{plastic:3,scrap:2,metal:1}, cat:'科技', desc:'制作电路板(需研究桌)',needResearch:true},
+  radio:     {out:{radio:1}, cost:{circuit:2,metal:2,plastic:4,rope:1}, cat:'科技', desc:'无线电发射器(需研究桌)',needResearch:true},
+  antenna:   {out:{antenna:1}, cost:{metal:3,scrap:4,bolt:2}, cat:'科技', desc:'天线部件(需研究桌)',needResearch:true},
+  receiver:  {out:{receiver:1}, cost:{circuit:3,plastic:6,metal:2,bolt:4}, cat:'科技', desc:'信号接收器(需研究桌)',needResearch:true},
+  beacon:    {out:{beacon:1}, cost:{circuit:3,radio:1,metal:3,bolt:4}, cat:'科技', desc:'紧急信标(需研究桌)',needResearch:true},
+  sail:      {out:{sail:1}, cost:{plank:4,rope:4,leaf:6}, cat:'工具', desc:'帆，用于航行移动木筏'},
+  compass:   {out:{compass:1}, cost:{metal:2,scrap:2}, cat:'工具', desc:'指南针，显示方向'},
+  cookedegg: {out:{cookedegg:1}, cost:{egg:1}, cat:'食物', desc:'煎蛋',needFire:true},
+};
+// 工具(不在背包叠加，是装备状态)
+const TOOLS = {
+  hook:  {name:'钩子',icon:'🪝',lvl:1},
+  spear: {name:'木矛',icon:'🔱',lvl:0},
+  hand:  {name:'徒手',icon:'✋'},
+};
+
+// 建造定义
+const BUILDS = {
+  floor:    {name:'木地板',icon:'⬜',cost:{plank:2},cat:'木筏',desc:'扩展木筏基础地板'},
+  floor_metal:{name:'金属地板',icon:'🔲',cost:{plank:1,metal:1},cat:'木筏',desc:'加固地板，鲨鱼咬不坏'},
+  purifier: {name:'蒸馏器',icon:'💧',cost:{plank:4,rope:2,plastic:2},cat:'设施',desc:'将海水蒸馏为淡水'},
+  grill:    {name:'烤架',icon:'🔥',cost:{plank:3,scrap:3,rope:1},cat:'设施',desc:'烤制食物(需木板燃料)'},
+  planter:  {name:'种植园',icon:'🪴',cost:{plank:4,leaf:4,rope:2},cat:'设施',desc:'种植土豆'},
+  research: {name:'研究桌',icon:'📐',cost:{plank:6,scrap:4,rope:2},cat:'设施',desc:'解锁更多配方'},
+  net:      {name:'收集网',icon:'🕸️',cost:{plank:2,rope:3},cat:'设施',desc:'自动收集漂浮物'},
+  spearstand:{name:'矛架',icon:'🎯',cost:{plank:3,scrap:2,rope:1},cat:'设施',desc:'自动攻击靠近的鲨鱼'},
+  storage:  {name:'储物箱',icon:'📦',cost:{plank:4,scrap:2,rope:2},cat:'设施',desc:'增加背包容量，自动存储多余物资'},
+  bed:      {name:'床铺',icon:'🛏️',cost:{plank:4,leaf:6,rope:2},cat:'设施',desc:'睡觉恢复生命值并跳过夜晚'},
+  smelter:  {name:'熔炉',icon:'🏭',cost:{plank:4,scrap:6,metal:2},cat:'设施',desc:'加速熔炼金属(废铁→金属→螺栓)'},
+  birdnest: {name:'鸟巢',icon:'🪺',cost:{plank:3,leaf:4,rope:1},cat:'设施',desc:'吸引海鸟产蛋'},
+  receiver_b:{name:'接收器站',icon:'📺',cost:{plank:4,receiver:1,circuit:1},cat:'科技',desc:'放置接收器，追踪信号源(主线)'},
+  antenna_b:{name:'天线塔',icon:'📡',cost:{plank:3,antenna:1,metal:2,bolt:2},cat:'科技',desc:'放置天线，增强信号(主线)'},
+  sail_b:   {name:'帆架',icon:'⛵',cost:{plank:6,sail:1,rope:4},cat:'科技',desc:'放置帆，可改变航行方向(主线)'},
+  beacon_b: {name:'信标台',icon:'🟢',cost:{plank:4,beacon:1,circuit:2},cat:'科技',desc:'放置信标，呼叫救援(主线终局)'},
+};
+
+// ---------- 主线任务系统 ----------
+const QUESTS = [
+  { id:'q1', title:'第一章：漂流之初', desc:'收集资源，建立基本生存保障', 
+    obj:'收集10个资源', check:()=>G.stats.collected>=10,
+    reward:{plank:4,rope:2}, rewardText:'4木板+2绳子', next:'q2' },
+  { id:'q2', title:'第二章：站稳脚跟', desc:'扩展木筏，建造蒸馏器和烤架',
+    obj:'建造蒸馏器+烤架+扩展木筏到12格', check:()=>countBuild('purifier')>=1 && countBuild('grill')>=1 && G.raft.length>=12,
+    reward:{plank:6,scrap:3}, rewardText:'6木板+3废铁', next:'q3' },
+  { id:'q3', title:'第三章：击退威胁', desc:'制作武器，击败第一只鲨鱼',
+    obj:'击败1只鲨鱼+制作木矛', check:()=>G.stats.killed>=1 && G.toolLvls.spear>=1,
+    reward:{metal:2,scrap:4}, rewardText:'2金属+4废铁', next:'q4' },
+  { id:'q4', title:'第四章：科技启蒙', desc:'建造研究桌，解锁科技配方',
+    obj:'建造研究桌+制作电路板', check:()=>countBuild('research')>=1 && (G.inventory.circuit||0)>=1,
+    reward:{circuit:1,plastic:4}, rewardText:'1电路板+4塑料', next:'q5' },
+  { id:'q5', title:'第五章：信号追踪', desc:'制作接收器和天线，追踪神秘信号',
+    obj:'建造接收器站+天线塔', check:()=>countBuild('receiver_b')>=1 && countBuild('antenna_b')>=1,
+    reward:{metal:3,bolt:4}, rewardText:'3金属+4螺栓', next:'q6' },
+  { id:'q6', title:'第六章：扬帆起航', desc:'建造帆架，驾驶木筏前往信号源',
+    obj:'建造帆架+生存到第4天', check:()=>countBuild('sail_b')>=1 && G.day>=4,
+    reward:{beacon:0}, rewardText:'解锁信标配方', next:'q7',
+    onComplete:()=>{ toast('📡 信号源方向已锁定！制作信标呼叫救援','ach'); } },
+  { id:'q7', title:'终章：求救信号', desc:'制作并放置信标，等待救援到来',
+    obj:'放置信标台', check:()=>countBuild('beacon_b')>=1,
+    reward:{}, rewardText:'救援即将到来！', next:null,
+    onComplete:()=>{ setTimeout(()=>gameWin(), 5000); } },
+];
+function countBuild(type){
+  let n=0; for(let k in G.builds) if(G.builds[k].type===type) n++; return n;
+}
+
+// ---------- 游戏状态 ----------
+const G = {
+  state:'menu', // menu, playing, paused, dead, win
+  canvas:null, ctx:null, W:0, H:0, dpr:1,
+  cam:{x:0,y:0},
+  time:0, // 游戏内秒
+  day:1, dayTime:0.25, // 0-1, 0.25=早上6点
+  inventory:{},
+  tool:'hook',
+  toolLvls:{hook:1, spear:0},
+  player:{x:0,y:0,vx:0,vy:0,r:14,facing:0,walkAnim:0},
+  raft:[], // {gx,gy,floor:'wood'/'metal',build:null,hp:100}
+  raftCenter:{x:0,y:0},
+  floats:[], // 漂浮物
+  hook:null, // {x,y,vx,vy,state:'idle'/'out'/'back',caught:[]}
+  shark:null, // {x,y,state,attackTimer,target}
+  creatures:[], // 海洋生物
+  builds:{}, // gx,gy -> build data
+  effects:[], // 视觉特效
+  particles:[],
+  weather:'sunny', // sunny, cloudy, rainy, storm
+  weatherTimer:0,
+  rainDrops:[],
+  island:null,
+  achievements:new Set(),
+  stats:{days:1, collected:0, built:0, killed:0, crafted:0},
+  input:{keys:{}, mouseX:0, mouseY:0, mouseDown:false,
+    joyActive:false, joyDX:0, joyDY:0, touchThrow:false, touchInteract:false},
+  selectedBuild:null,
+  lastFloatSpawn:0,
+  shake:0,
+  netCollection:0,
+  // 主线任务
+  currentQuestIdx:0,
+  questCompleted:new Set(),
+  // 航行系统
+  sailDir:0, // 航行方向(弧度)
+  sailing:false,
+  sailSpeed:0,
+  destination:null, // {x,y,dist} 信号源目标
+  researchUnlocked:false,
+  hasSail:false,
+  signalDir:0, // 信号方向
+};
+
+// ---------- 初始化Canvas ----------
+function initCanvas(){
+  G.canvas = $('gameCanvas');
+  G.ctx = G.canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+function resizeCanvas(){
+  G.dpr = Math.min(window.devicePixelRatio||1, 2);
+  G.W = window.innerWidth;
+  G.H = window.innerHeight;
+  G.canvas.width = G.W * G.dpr;
+  G.canvas.height = G.H * G.dpr;
+  G.canvas.style.width = G.W+'px';
+  G.canvas.style.height = G.H+'px';
+  G.ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
+}
+
+// ---------- 木筏系统 ----------
+function raftKey(gx,gy){ return gx+','+gy; }
+function initRaft(){
+  G.raft = [];
+  for(let gx=-1;gx<=1;gx++) for(let gy=-1;gy<=1;gy++){
+    G.raft.push({gx,gy,floor:'wood',build:null,hp:100});
+  }
+  G.raftCenter = {x:0,y:0};
+}
+function getTile(gx,gy){
+  return G.raft.find(t=>t.gx===gx&&t.gy===gy);
+}
+function addTile(gx,gy,floor){
+  if(getTile(gx,gy)) return false;
+  G.raft.push({gx,gy,floor:floor||'wood',build:null,hp:100});
+  return true;
+}
+function tileToWorld(gx,gy){
+  return {x: gx*CFG.TILE, y: gy*CFG.TILE};
+}
+function worldToTile(x,y){
+  return {gx: Math.round(x/CFG.TILE), gy: Math.round(y/CFG.TILE)};
+}
+function isOnRaft(x,y){
+  let {gx,gy} = worldToTile(x,y);
+  return getTile(gx,gy) != null;
+}
+
+// ---------- 物品系统 ----------
+function addItem(type, n=1){
+  G.inventory[type] = (G.inventory[type]||0) + n;
+  updateInventoryUI();
+  updateHotbar();
+}
+function removeItem(type, n=1){
+  if((G.inventory[type]||0) < n) return false;
+  G.inventory[type] -= n;
+  if(G.inventory[type]<=0) delete G.inventory[type];
+  return true;
+}
+function hasItems(cost){
+  for(let k in cost) if((G.inventory[k]||0) < cost[k]) return false;
+  return true;
+}
+function payItems(cost){
+  for(let k in cost) removeItem(k, cost[k]);
+}
+
+// ---------- 漂浮物系统 ----------
+const FLOAT_TYPES = [
+  {type:'plank',  w:30, color:'#c08850'},
+  {type:'plastic',w:25, color:'#e8e8e8'},
+  {type:'leaf',   w:22, color:'#5cb85c'},
+  {type:'scrap',  w:12, color:'#888'},
+  {type:'barrel', w:6,  color:'#8b6914'}, // 木桶含多种资源
+  {type:'vine',   w:8,  color:'#4a9a4a'},
+];
+function spawnFloat(){
+  let total = FLOAT_TYPES.reduce((s,f)=>s+f.w,0);
+  let r = Math.random()*total, type;
+  for(let f of FLOAT_TYPES){ r-=f.w; if(r<=0){type=f.type;break;} }
+  // 从屏幕边缘外生成，向木筏方向漂
+  let ang = Math.random()*TAU;
+  let d = Math.max(G.W,G.H)*0.65;
+  let x = G.raftCenter.x + Math.cos(ang)*d;
+  let y = G.raftCenter.y + Math.sin(ang)*d;
+  G.floats.push({
+    x,y, type, r: rand(10,16),
+    vx: -Math.cos(ang)*rand(0.15,0.4) + rand(-0.1,0.1),
+    vy: -Math.sin(ang)*rand(0.15,0.4) + rand(-0.1,0.1),
+    bob: Math.random()*TAU, rot: Math.random()*TAU,
+    caught:false,
+  });
+}
+function updateFloats(dt){
+  for(let i=G.floats.length-1;i>=0;i--){
+    let f = G.floats[i];
+    if(f.caught) continue;
+    f.x += f.vx;
+    f.y += f.vy;
+    f.bob += 0.05;
+    f.rot += 0.01;
+    // 漂太远移除
+    let d = dist(f.x,f.y,G.raftCenter.x,G.raftCenter.y);
+    if(d > Math.max(G.W,G.H)*0.8) G.floats.splice(i,1);
+  }
+}
+
+// ---------- 钩子系统 ----------
+function throwHook(){
+  if(G.hook && G.hook.state!=='idle') return;
+  // 瞄准方向
+  let tx, ty;
+  if(G.input.touchThrow || G.input.joyActive){
+    // 手机端：朝玩家面向方向
+    tx = G.player.x + Math.cos(G.player.facing)*CFG.HOOK_RANGE;
+    ty = G.player.y + Math.sin(G.player.facing)*CFG.HOOK_RANGE;
+  } else {
+    tx = G.input.mouseX + G.cam.x;
+    ty = G.input.mouseY + G.cam.y;
+  }
+  let dx = tx - G.player.x, dy = ty - G.player.y;
+  let len = Math.hypot(dx,dy)||1;
+  let speed = CFG.HOOK_SPEED * (G.toolLvls.hook>=3?1.4 : G.toolLvls.hook>=2?1.15:1);
+  G.hook = {
+    x:G.player.x, y:G.player.y,
+    vx:dx/len*speed, vy:dy/len*speed,
+    state:'out', caught:[], maxRange: CFG.HOOK_RANGE*(G.toolLvls.hook>=2?1.3:1),
+    traveled:0, startX:G.player.x, startY:G.player.y,
+  };
+}
+function updateHook(dt){
+  if(!G.hook) return;
+  let h = G.hook;
+  if(h.state==='out'){
+    h.x += h.vx; h.y += h.vy;
+    h.traveled = dist(h.x,h.y,h.startX,h.startY);
+    // 检测碰撞漂浮物
+    for(let f of G.floats){
+      if(f.caught) continue;
+      if(dist(h.x,h.y,f.x,f.y) < f.r+12){
+        f.caught = true;
+        h.caught.push(f);
+      }
+    }
+    // 达到最大距离或碰到边界则返回
+    if(h.traveled >= h.maxRange) h.state='back';
+  } else if(h.state==='back'){
+    let dx = G.player.x - h.x, dy = G.player.y - h.y;
+    let d = Math.hypot(dx,dy);
+    let speed = CFG.HOOK_SPEED*1.1;
+    if(d < speed){
+      // 收回，获取物品
+      for(let f of h.caught) collectFloat(f);
+      G.hook = null;
+      return;
+    }
+    h.x += dx/d*speed; h.y += dy/d*speed;
+    // 拖着捕获物
+    for(let f of h.caught){ f.x = h.x; f.y = h.y; }
+  }
+}
+function collectFloat(f){
+  if(f.type==='barrel'){
+    // 木桶含多种资源
+    let n = randi(2,4);
+    let pool = ['plank','plastic','leaf','scrap'];
+    for(let i=0;i<n;i++){ let t=pool[randi(0,3)]; addItem(t,1); G.stats.collected++; }
+    toast('🛢️ 木桶：获得多种资源！','good');
+  } else {
+    addItem(f.type,1);
+    G.stats.collected++;
+  }
+  // 从floats中移除
+  let idx = G.floats.indexOf(f);
+  if(idx>=0) G.floats.splice(idx,1);
+  spawnParticle(f.x,f.y, ITEMS[f.type]?ITEMS[f.type].color:'#fff');
+  checkAchievements();
+  checkQuestProgress();
+}
+
+// ---------- 鲨鱼系统 ----------
+function spawnShark(){
+  let ang = Math.random()*TAU;
+  let d = 400;
+  G.shark = {
+    x: G.raftCenter.x + Math.cos(ang)*d,
+    y: G.raftCenter.y + Math.sin(ang)*d,
+    ang: ang+Math.PI,
+    state:'circle', // circle, attack, flee, dead
+    attackTimer: CFG.SHARK_ATTACK_INTERVAL,
+    circleAng: ang,
+    hp: 30 + G.day*5,
+    maxHp: 30 + G.day*5,
+    biteAnim:0,
+  };
+}
+function updateShark(dt){
+  if(!G.shark){ 
+    G.shark = G.shark; // 可能被击杀后null
+    return;
+  }
+  let s = G.shark;
+  if(s.state==='dead') return;
+  s.attackTimer -= dt;
+  s.biteAnim = Math.max(0, s.biteAnim - dt*3);
+
+  if(s.state==='flee'){
+    let dx = s.x - G.raftCenter.x, dy = s.y - G.raftCenter.y;
+    let d = Math.hypot(dx,dy)||1;
+    s.x += dx/d*2.5; s.y += dy/d*2.5;
+    s.ang = Math.atan2(dy,dx);
+    if(d > 600){ G.shark = null; }
+    return;
+  }
+  if(s.state==='circle'){
+    // 环绕木筏
+    s.circleAng += 0.008;
+    let r = 180;
+    let tx = G.raftCenter.x + Math.cos(s.circleAng)*r;
+    let ty = G.raftCenter.y + Math.sin(s.circleAng)*r;
+    let dx = tx-s.x, dy = ty-s.y;
+    s.x += dx*0.04; s.y += dy*0.04;
+    s.ang = Math.atan2(dy,dx);
+    if(s.attackTimer<=0){
+      s.state = 'attack';
+      // 选择边缘木筏格子作为目标
+      let edges = G.raft.filter(t=>{
+        let n=0;
+        for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
+          if(dx===0&&dy===0)continue;
+          if(getTile(t.gx+dx,t.gy+dy)) n++;
+        }
+        return n<8;
+      });
+      if(edges.length){
+        let t = edges[randi(0,edges.length-1)];
+        let w = tileToWorld(t.gx,t.gy);
+        s.target = {x:w.x, y:w.y, tile:t};
+      } else {
+        s.attackTimer = 5; s.state='circle';
+      }
+    }
+  }
+  if(s.state==='attack'){
+    if(s.target){
+      let dx = s.target.x - s.x, dy = s.target.y - s.y;
+      let d = Math.hypot(dx,dy)||1;
+      s.x += dx/d*3.5; s.y += dy/d*3.5;
+      s.ang = Math.atan2(dy,dx);
+      if(d < 20){
+        // 咬木筏
+        s.biteAnim = 1;
+        let tile = s.target.tile;
+        if(tile.floor==='metal'){
+          toast('🦈 鲨鱼咬不动金属地板！','good');
+        } else {
+          tile.hp -= 34;
+          G.shake = 8;
+          if(tile.hp<=0){
+            // 摧毁地板
+            let idx = G.raft.indexOf(tile);
+            if(idx>=0) G.raft.splice(idx,1);
+            if(tile.build){ delete G.builds[raftKey(tile.gx,tile.gy)]; }
+            toast('🦈 鲨鱼咬坏了你的木筏！','bad');
+          } else {
+            toast('🦈 鲨鱼正在啃咬木筏！','bad');
+          }
+        }
+        s.state = 'circle';
+        s.attackTimer = CFG.SHARK_ATTACK_INTERVAL - G.day*1.5;
+        s.target = null;
+      }
+    } else {
+      s.state='circle'; s.attackTimer=5;
+    }
+  }
+}
+function attackShark(){
+  if(!G.shark || G.shark.state==='dead' || G.toolLvls.spear<1) return;
+  let s = G.shark;
+  let d = dist(G.player.x,G.player.y,s.x,s.y);
+  let range = 70;
+  if(d < range){
+    let dmg = G.toolLvls.spear>=2 ? 15 : 8;
+    s.hp -= dmg;
+    spawnParticle(s.x,s.y,'#e74c3c',8);
+    G.shake = 4;
+    if(s.hp<=0){
+      addItem('rawfish',2);
+      addItem('scrap',1);
+      G.stats.killed++;
+      toast('🦈 击败鲨鱼！获得鱼肉和废铁','good');
+      s.state='dead';
+      setTimeout(()=>{ G.shark=null; spawnShark(); }, 8000);
+      checkAchievements();
+    } else {
+      // 鲨鱼被攻击后有几率逃跑
+      if(s.state==='attack'){ s.state='circle'; s.attackTimer=10; }
+    }
+  }
+}
+
+// ---------- 海洋生物 ----------
+function spawnCreature(){
+  let types = [
+    {type:'turtle',icon:'🐢',speed:0.5,r:18},
+    {type:'jellyfish',icon:'🪼',speed:0.3,r:14},
+    {type:'whale',icon:'🐋',speed:0.4,r:30},
+    {type:'seagull',icon:'🐦',speed:1.2,r:10},
+  ];
+  let t = types[randi(0,types.length-1)];
+  let ang = Math.random()*TAU;
+  let d = 500;
+  G.creatures.push({
+    ...t, x:G.raftCenter.x+Math.cos(ang)*d, y:G.raftCenter.y+Math.sin(ang)*d,
+    vx:-Math.cos(ang)*t.speed, vy:-Math.sin(ang)*t.speed,
+    bob:Math.random()*TAU, life:30,
+  });
+}
+function updateCreatures(dt){
+  for(let i=G.creatures.length-1;i>=0;i--){
+    let c = G.creatures[i];
+    c.x += c.vx; c.y += c.vy;
+    c.bob += 0.03;
+    c.life -= dt;
+    if(c.life<=0 || dist(c.x,c.y,G.raftCenter.x,G.raftCenter.y)>700){
+      G.creatures.splice(i,1);
+    }
+  }
+}
+
+// ---------- 天气系统 ----------
+function updateWeather(dt){
+  G.weatherTimer -= dt;
+  if(G.weatherTimer<=0){
+    let r = Math.random();
+    let old = G.weather;
+    if(G.day>=2 && r<0.15) G.weather='storm';
+    else if(r<0.35) G.weather='rainy';
+    else if(r<0.6) G.weather='cloudy';
+    else G.weather='sunny';
+    G.weatherTimer = rand(30,60);
+    if(G.weather!==old){
+      let names={sunny:'☀️ 晴',cloudy:'☁️ 多云',rainy:'🌧️ 下雨',storm:'⛈️ 暴风雨'};
+      toast('天气变化：'+names[G.weather], G.weather==='storm'?'bad':'');
+    }
+  }
+  // 雨天自动收集淡水
+  if(G.weather==='rainy' || G.weather==='storm'){
+    G.netCollection += dt;
+    if(G.netCollection>=8){
+      G.netCollection=0;
+      addItem('water',1);
+      toast('💧 雨水收集到淡水','good');
+    }
+  }
+  // 暴风雨损坏木筏
+  if(G.weather==='storm'){
+    if(Math.random()<dt*0.05){
+      let wood = G.raft.filter(t=>t.floor==='wood');
+      if(wood.length){
+        let t = wood[randi(0,wood.length-1)];
+        t.hp -= 10;
+        G.shake = 6;
+        if(t.hp<=0){
+          let idx=G.raft.indexOf(t); if(idx>=0)G.raft.splice(idx,1);
+          if(t.build) delete G.builds[raftKey(t.gx,t.gy)];
+        }
+      }
+    }
+  }
+  // 雨滴粒子
+  if(G.weather==='rainy'||G.weather==='storm'){
+    let n = G.weather==='storm'?3:1;
+    for(let i=0;i<n;i++){
+      G.rainDrops.push({
+        x:G.cam.x+rand(-50,G.W+50), y:G.cam.y-20,
+        vx:-2, vy:rand(10,16), life:1
+      });
+    }
+  }
+  for(let i=G.rainDrops.length-1;i>=0;i--){
+    let d=G.rainDrops[i];
+    d.x+=d.vx; d.y+=d.vy; d.life-=dt*2;
+    if(d.y>G.cam.y+G.H+20||d.life<=0) G.rainDrops.splice(i,1);
+  }
+}
+
+// ---------- 昼夜循环 ----------
+function getDayLight(){
+  // dayTime 0=午夜 0.25=早6点 0.5=正午 0.75=晚6点
+  let t = G.dayTime;
+  if(t<0.2||t>0.8) return 0.15; // 深夜
+  if(t<0.3) return lerp(0.15,1,(t-0.2)/0.1);
+  if(t>0.7) return lerp(1,0.15,(t-0.7)/0.1);
+  return 1;
+}
+function getTimeString(){
+  let h = Math.floor(G.dayTime*24);
+  let m = Math.floor((G.dayTime*24-h)*60);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+
+// ---------- 生存系统 ----------
+function updateSurvival(dt){
+  G.player.hunger = (G.player.hunger??100) - CFG.HUNGER_DECAY;
+  G.player.thirst = (G.player.thirst??100) - CFG.THIRST_DECAY;
+  // 暴风雨加快消耗
+  if(G.weather==='storm'){ G.player.hunger-=CFG.HUNGER_DECAY*0.5; G.player.thirst-=CFG.THIRST_DECAY*0.5; }
+  G.player.hunger = clamp(G.player.hunger,0,100);
+  G.player.thirst = clamp(G.player.thirst,0,100);
+  G.player.hp = G.player.hp??100;
+  if(G.player.hunger<=0||G.player.thirst<=0){
+    G.player.hp -= 0.05;
+  } else if(G.player.hunger>50&&G.player.thirst>50){
+    G.player.hp = Math.min(100, G.player.hp + CFG.HP_REGEN);
+  }
+  if(G.player.hp<=0) gameOver('饥饿或脱水夺走了你的生命...');
+}
+
+// ---------- 建造系统 ----------
+function tryBuild(gx,gy,buildId){
+  let tile = getTile(gx,gy);
+  let b = BUILDS[buildId];
+  if(!b) return;
+  if(buildId==='floor'||buildId==='floor_metal'){
+    // 放置新地板：必须与现有地板相邻
+    if(tile) { toast('这里已有地板','bad'); return; }
+    let adjacent = false;
+    for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
+      if(dx===0&&dy===0)continue;
+      if(getTile(gx+dx,gy+dy)) adjacent=true;
+    }
+    if(!adjacent){ toast('必须紧挨现有木筏建造','bad'); return; }
+    if(!hasItems(b.cost)){ toast('资源不足','bad'); return; }
+    payItems(b.cost);
+    addTile(gx,gy, buildId==='floor_metal'?'metal':'wood');
+    G.stats.built++;
+    toast('搭建了'+b.name,'good');
+    spawnParticle(gx*CFG.TILE,gy*CFG.TILE,b.build?'#5fd0e8':'#c08850',6);
+  } else {
+    // 放置设施：需要已有地板
+    if(!tile){ toast('需要先放地板','bad'); return; }
+    if(tile.build){ toast('这里已有设施','bad'); return; }
+    if(!hasItems(b.cost)){ toast('资源不足','bad'); return; }
+    payItems(b.cost);
+    tile.build = buildId;
+    G.builds[raftKey(gx,gy)] = {type:buildId, timer:0};
+    G.stats.built++;
+    toast('建造了'+b.name,'good');
+    spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#5fd0e8',8);
+    // 研究桌解锁科技
+    if(buildId==='research'){
+      if(!G.researchUnlocked){
+        G.researchUnlocked = true;
+        toast('📐 研究桌建成！科技配方已解锁','ach');
+        updateBuildUI();
+      }
+    }
+  }
+  updateInventoryUI(); updateHotbar(); updateBuildUI();
+  checkAchievements(); checkQuestProgress();
+}
+
+// ---------- 设施运作 ----------
+function updateBuilds(dt){
+  for(let key in G.builds){
+    let b = G.builds[key];
+    let [gx,gy] = key.split(',').map(Number);
+    b.timer = (b.timer||0) + dt;
+    if(b.type==='purifier'){
+      // 蒸馏器：消耗塑料，产出淡水
+      if(b.timer>=15 && (G.inventory.plastic||0)>0){
+        b.timer=0; removeItem('plastic',1); addItem('water',1);
+        spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#5dade2',4);
+      }
+    } else if(b.type==='grill'){
+      // 烤架：消耗木板+生鱼，产出烤鱼
+      if(b.timer>=10 && (G.inventory.rawfish||0)>0 && (G.inventory.plank||0)>0){
+        b.timer=0; removeItem('rawfish',1); removeItem('plank',1);
+        addItem('cookedfish',1);
+        spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#ff8c00',4);
+      }
+    } else if(b.type==='planter'){
+      // 种植园：消耗棕榈叶，产出土豆
+      if(b.timer>=25 && (G.inventory.leaf||0)>0){
+        b.timer=0; removeItem('leaf',1); addItem('potato',1);
+        spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#5cb85c',4);
+      }
+    } else if(b.type==='net'){
+      // 收集网：自动收集附近漂浮物
+      if(b.timer>=6){
+        b.timer=0;
+        let w = tileToWorld(gx,gy);
+        for(let f of G.floats){
+          if(!f.caught && dist(f.x,f.y,w.x,w.y)<80){
+            f.caught=true; collectFloat(f); break;
+          }
+        }
+      }
+    } else if(b.type==='spearstand'){
+      // 矛架：自动攻击鲨鱼
+      if(b.timer>=5 && G.shark && G.shark.state!=='dead'){
+        let w = tileToWorld(gx,gy);
+        if(dist(G.shark.x,G.shark.y,w.x,w.y)<150){
+          b.timer=0;
+          G.shark.hp -= 5;
+          spawnParticle(G.shark.x,G.shark.y,'#e74c3c',4);
+          if(G.shark.hp<=0){
+            addItem('rawfish',2); addItem('scrap',1); G.stats.killed++;
+            toast('🎯 矛架击杀鲨鱼！','good');
+            G.shark.state='dead';
+            setTimeout(()=>{G.shark=null;spawnShark();},8000);
+          }
+        }
+      }
+    } else if(b.type==='smelter'){
+      // 熔炉：加速熔炼废铁→金属
+      if(b.timer>=8 && (G.inventory.scrap||0)>=2){
+        b.timer=0; removeItem('scrap',2); addItem('metal',1);
+        spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#ff6b00',6);
+      }
+    } else if(b.type==='birdnest'){
+      // 鸟巢：定期产出鸟蛋
+      if(b.timer>=20){
+        b.timer=0; addItem('egg',1);
+        spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#f5e6c8',4);
+      }
+    } else if(b.type==='storage'){
+      // 储物箱：被动增加容量(已通过存在本身体现)
+    } else if(b.type==='bed'){
+      // 床：被动恢复(夜晚加速)
+      if(getDayLight()<0.4){
+        G.player.hp = Math.min(100, (G.player.hp||100) + dt*3);
+      }
+    } else if(b.type==='sail_b'){
+      // 帆架：已通过sailing系统处理
+    } else if(b.type==='receiver_b'){
+      // 接收器：已通过罗盘系统处理
+    }
+  }
+}
+
+// ---------- 消耗食物 ----------
+function consume(item){
+  if(item==='cookedfish' && (G.inventory.cookedfish||0)>0){
+    removeItem('cookedfish',1);
+    G.player.hunger=Math.min(100,G.player.hunger+35);
+    G.player.hp=Math.min(100,G.player.hp+8);
+    toast('🐟 吃了烤鱼，美味！','good');
+  } else if(item==='rawfish' && (G.inventory.rawfish||0)>0){
+    removeItem('rawfish',1);
+    G.player.hunger=Math.min(100,G.player.hunger+18);
+    toast('🐟 吃了生鱼','good');
+  } else if(item==='potato' && (G.inventory.potato||0)>0){
+    removeItem('potato',1);
+    G.player.hunger=Math.min(100,G.player.hunger+22);
+    toast('🥔 吃了土豆','good');
+  } else if(item==='cookedegg' && (G.inventory.cookedegg||0)>0){
+    removeItem('cookedegg',1);
+    G.player.hunger=Math.min(100,G.player.hunger+20);
+    G.player.hp=Math.min(100,G.player.hp+5);
+    toast('🍳 吃了煎蛋','good');
+  } else if(item==='water' && (G.inventory.water||0)>0){
+    removeItem('water',1);
+    G.player.thirst=Math.min(100,G.player.thirst+40);
+    toast('💧 喝了淡水','good');
+  }
+  updateInventoryUI(); updateHotbar();
+}
+
+// ---------- 玩家移动 ----------
+function updatePlayer(dt){
+  let mx=0,my=0;
+  if(G.input.keys['w']||G.input.keys['arrowup']) my-=1;
+  if(G.input.keys['s']||G.input.keys['arrowdown']) my+=1;
+  if(G.input.keys['a']||G.input.keys['arrowleft']) mx-=1;
+  if(G.input.keys['d']||G.input.keys['arrowright']) mx+=1;
+  if(G.input.joyActive){ mx=G.input.joyDX; my=G.input.joyDY; }
+  let len=Math.hypot(mx,my);
+  if(len>0.1){
+    mx/=len; my/=len;
+    G.player.facing=Math.atan2(my,mx);
+    G.player.walkAnim+=0.2;
+  }
+  let spd=CFG.PLAYER_SPEED;
+  let nx=G.player.x+mx*spd, ny=G.player.y+my*spd;
+  // 只能在木筏上移动
+  if(isOnRaft(nx,G.player.y)) G.player.x=nx;
+  if(isOnRaft(G.player.x,ny)) G.player.y=ny;
+  // 限制在木筏范围内(不能掉海)
+  // 玩家面向跟随鼠标(电脑端)
+  if(!G.input.joyActive && !G.input.touchThrow){
+    let wx=G.input.mouseX+G.cam.x, wy=G.input.mouseY+G.cam.y;
+    G.player.facing=Math.atan2(wy-G.player.y,wx-G.player.x);
+  }
+}
+
+// ---------- 粒子/特效 ----------
+function spawnParticle(x,y,color,n=4){
+  for(let i=0;i<n;i++){
+    G.particles.push({
+      x,y, vx:rand(-2,2), vy:rand(-3,-0.5),
+      life:1, color, size:rand(2,5),
+    });
+  }
+}
+function updateParticles(dt){
+  for(let i=G.particles.length-1;i>=0;i--){
+    let p=G.particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life-=dt*2;
+    if(p.life<=0) G.particles.splice(i,1);
+  }
+}
+
+// ---------- 成就 ----------
+const ACHIEVEMENTS = {
+  firstCatch:{name:'初次收获',desc:'收集第一个资源',cond:()=>G.stats.collected>=1},
+  collector:{name:'拾荒者',desc:'收集50个资源',cond:()=>G.stats.collected>=50},
+  builder:{name:'建筑师',desc:'建造10个设施/地板',cond:()=>G.stats.built>=10},
+  sharkSlayer:{name:'鲨鱼杀手',desc:'击败第一只鲨鱼',cond:()=>G.stats.killed>=1},
+  survivor3:{name:'生存者',desc:'存活3天',cond:()=>G.stats.days>=3},
+  survivor7:{name:'海上鲁滨逊',desc:'存活7天',cond:()=>G.stats.days>=7},
+  bigRaft:{name:'海上家园',desc:'木筏达到20格',cond:()=>G.raft.length>=20},
+  crafter:{name:'工匠',desc:'制作10次物品',cond:()=>G.stats.crafted>=10},
+};
+function checkAchievements(){
+  for(let id in ACHIEVEMENTS){
+    if(!G.achievements.has(id) && ACHIEVEMENTS[id].cond()){
+      G.achievements.add(id);
+      toast('🏆 成就解锁：'+ACHIEVEMENTS[id].name,'ach');
+    }
+  }
+}
+
+// ---------- 主线任务逻辑 ----------
+function getCurrentQuest(){
+  return QUESTS[G.currentQuestIdx] || null;
+}
+function updateQuestTracker(){
+  let q = getCurrentQuest();
+  if(!q){ $('questTracker').classList.add('hidden'); return; }
+  $('questTracker').classList.remove('hidden');
+  $('qtTitle').textContent = q.title;
+  $('qtDesc').textContent = q.desc;
+  let done = q.check();
+  $('qtObj').textContent = q.obj;
+  $('qtObj').className = done?'done':'';
+  $('qtReward').textContent = '奖励：'+q.rewardText;
+  // 进度估算
+  let prog = estimateQuestProgress(q);
+  $('qtProgress').firstElementChild.style.width = (prog*100)+'%';
+}
+function estimateQuestProgress(q){
+  // 简单估算各任务进度
+  switch(q.id){
+    case 'q1': return Math.min(1, G.stats.collected/10);
+    case 'q2': {
+      let s=0;
+      if(countBuild('purifier')>=1) s+=0.33;
+      if(countBuild('grill')>=1) s+=0.33;
+      if(G.raft.length>=12) s+=0.34;
+      return s;
+    }
+    case 'q3': {
+      let s=0;
+      if(G.stats.killed>=1) s+=0.5;
+      if(G.toolLvls.spear>=1) s+=0.5;
+      return s;
+    }
+    case 'q4': {
+      let s=0;
+      if(countBuild('research')>=1) s+=0.5;
+      if((G.inventory.circuit||0)>=1) s+=0.5;
+      return s;
+    }
+    case 'q5': {
+      let s=0;
+      if(countBuild('receiver_b')>=1) s+=0.5;
+      if(countBuild('antenna_b')>=1) s+=0.5;
+      return s;
+    }
+    case 'q6': {
+      let s=0;
+      if(countBuild('sail_b')>=1) s+=0.5;
+      if(G.day>=4) s+=0.5;
+      return s;
+    }
+    case 'q7': return countBuild('beacon_b')>=1?1:0;
+  }
+  return 0;
+}
+function checkQuestProgress(){
+  let q = getCurrentQuest();
+  if(!q) return;
+  if(q.check() && !G.questCompleted.has(q.id)){
+    G.questCompleted.add(q.id);
+    // 发放奖励
+    if(q.reward){
+      for(let k in q.reward){ if(q.reward[k]>0) addItem(k, q.reward[k]); }
+    }
+    toast('✅ '+q.title+' 完成！奖励：'+q.rewardText,'ach');
+    if(q.onComplete) q.onComplete();
+    // 研究桌解锁
+    if(q.id==='q4') G.researchUnlocked = true;
+    // 信标解锁
+    if(q.id==='q6') { /* beacon recipe already in RECIPES */ }
+    // 进入下一任务
+    if(q.next){
+      G.currentQuestIdx++;
+      setTimeout(()=>{
+        let nq = getCurrentQuest();
+        if(nq) toast('📋 新任务：'+nq.title+' - '+nq.obj,'ach');
+        updateQuestTracker();
+      }, 1200);
+    }
+    updateQuestTracker();
+    updateCraftUI(currentCraftCat||'基础');
+    updateBuildUI();
+  }
+}
+let currentCraftCat='基础';
+
+// ---------- 航行系统 ----------
+function updateSailing(dt){
+  // 有帆架才能航行
+  if(!countBuild('sail_b')) { G.sailing=false; return; }
+  // 信号方向随时间缓慢变化(制造寻路感)
+  G.signalDir += dt*0.02;
+  // 显示罗盘
+  if(countBuild('receiver_b')>=1){
+    $('compass').style.display='flex';
+    let relAng = G.signalDir - G.sailDir;
+    $('compassArrow').style.transform = `rotate(${relAng}rad)`;
+  }
+  // 航行移动：玩家按键调整方向
+  if(G.sailing){
+    G.sailSpeed = lerp(G.sailSpeed, 0.8, 0.02);
+  } else {
+    G.sailSpeed = lerp(G.sailSpeed, 0, 0.05);
+  }
+  if(G.sailSpeed>0.01){
+    let dx = Math.cos(G.sailDir)*G.sailSpeed;
+    let dy = Math.sin(G.sailDir)*G.sailSpeed;
+    // 移动所有木筏、漂浮物、生物、鲨鱼(模拟木筏前进)
+    for(let t of G.raft){ }
+    // 实际上移动相机和世界物体来模拟航行
+    G.raftCenter.x += dx; G.raftCenter.y += dy;
+    G.player.x += dx; G.player.y += dy;
+    for(let f of G.floats){ f.x+=dx; f.y+=dy; }
+    if(G.shark){ G.shark.x+=dx; G.shark.y+=dy; }
+    for(let c of G.creatures){ c.x+=dx; c.y+=dy; }
+    if(G.island){ G.island.x+=dx; G.island.y+=dy; }
+  }
+}
+
+// ---------- Toast ----------
+function toast(msg, type=''){
+  let el=document.createElement('div');
+  el.className='toast '+type;
+  el.textContent=msg;
+  $('toastContainer').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .5s'; setTimeout(()=>el.remove(),500); }, 2500);
+}
+
+// ---------- 渲染 ----------
+function render(){
+  let ctx=G.ctx;
+  let light=getDayLight();
+  // 相机跟随玩家
+  G.cam.x = lerp(G.cam.x, G.player.x - G.W/2, 0.1);
+  G.cam.y = lerp(G.cam.y, G.player.y - G.H/2, 0.1);
+  let sx=0, sy=0;
+  if(G.shake>0){ sx=rand(-G.shake,G.shake); sy=rand(-G.shake,G.shake); G.shake*=0.85; if(G.shake<0.5)G.shake=0; }
+
+  ctx.save();
+  ctx.translate(-G.cam.x+sx, -G.cam.y+sy);
+
+  // 海洋背景
+  drawOcean(ctx, light);
+
+  // 岛屿
+  if(G.island) drawIsland(ctx);
+
+  // 漂浮物
+  for(let f of G.floats) drawFloat(ctx, f);
+
+  // 海洋生物
+  for(let c of G.creatures) drawCreature(ctx, c);
+
+  // 鲨鱼
+  if(G.shark) drawShark(ctx, G.shark);
+
+  // 木筏
+  drawRaft(ctx);
+
+  // 玩家
+  drawPlayer(ctx);
+
+  // 钩子
+  if(G.hook) drawHook(ctx);
+
+  // 粒子
+  for(let p of G.particles){
+    ctx.globalAlpha=p.life;
+    ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // 雨滴
+  for(let d of G.rainDrops){
+    ctx.strokeStyle='rgba(180,210,240,'+d.life*0.6+')';
+    ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+d.vx*2,d.y+d.vy); ctx.stroke();
+  }
+
+  // 建造预览
+  if(G.selectedBuild) drawBuildPreview(ctx);
+
+  ctx.restore();
+
+  // 昼夜遮罩
+  if(light<0.95){
+    ctx.fillStyle=`rgba(5,15,40,${(1-light)*0.65})`;
+    ctx.fillRect(0,0,G.W,G.H);
+    // 火把/烤架光照
+    drawLights(ctx);
+  }
+  // 暴风雨遮罩
+  if(G.weather==='storm'){
+    ctx.fillStyle='rgba(20,20,40,0.2)';
+    ctx.fillRect(0,0,G.W,G.H);
+  }
+}
+function drawOcean(ctx, light){
+  let cx=G.cam.x, cy=G.cam.y;
+  // 深浅渐变
+  let g=ctx.createLinearGradient(0,cy,0,cy+G.H);
+  let base = light>0.5? '#1a6b8a' : '#0a3045';
+  g.addColorStop(0, light>0.5?'#2a9db8':'#1a5070');
+  g.addColorStop(1, base);
+  ctx.fillStyle=g;
+  ctx.fillRect(cx-50,cy-50,G.W+100,G.H+100);
+  // 波浪线条
+  ctx.strokeStyle=`rgba(255,255,255,${0.06*light})`;
+  ctx.lineWidth=2;
+  let t=G.time*30;
+  for(let i=0;i<12;i++){
+    let y=cy + (i*G.H/12) + Math.sin(t*0.5+i)*8;
+    ctx.beginPath();
+    for(let x=cx;x<cx+G.W;x+=20){
+      let wy=y+Math.sin(x*0.02+t+i)*6;
+      if(x===cx) ctx.moveTo(x,wy); else ctx.lineTo(x,wy);
+    }
+    ctx.stroke();
+  }
+}
+function drawIsland(ctx){
+  let isl=G.island;
+  ctx.save();
+  ctx.translate(isl.x,isl.y);
+  // 沙滩
+  ctx.fillStyle='#e8d8a0';
+  ctx.beginPath(); ctx.arc(0,0,isl.r,0,TAU); ctx.fill();
+  // 草地
+  ctx.fillStyle='#5cb85c';
+  ctx.beginPath(); ctx.arc(0,0,isl.r*0.65,0,TAU); ctx.fill();
+  // 棕榈树
+  for(let i=0;i<5;i++){
+    let a=i/5*TAU;
+    let tx=Math.cos(a)*isl.r*0.4, ty=Math.sin(a)*isl.r*0.4;
+    ctx.fillStyle='#8b6914';
+    ctx.fillRect(tx-3,ty-20,6,20);
+    ctx.fillStyle='#2e8b57';
+    ctx.beginPath(); ctx.arc(tx,ty-22,14,0,TAU); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawFloat(ctx,f){
+  ctx.save();
+  ctx.translate(f.x, f.y+Math.sin(f.bob)*3);
+  ctx.rotate(f.rot*0.3);
+  let col=ITEMS[f.type]?ITEMS[f.type].color:'#fff';
+  // 阴影
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(0,8,f.r,f.r*0.4,0,0,TAU); ctx.fill();
+  // 主体
+  ctx.fillStyle=col;
+  ctx.beginPath(); ctx.arc(0,0,f.r,0,TAU); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1.5; ctx.stroke();
+  // 图标
+  ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(ITEMS[f.type]?ITEMS[f.type].icon:'?',0,1);
+  ctx.restore();
+}
+function drawCreature(ctx,c){
+  ctx.save();
+  ctx.translate(c.x, c.y+Math.sin(c.bob)*4);
+  ctx.font=(c.r*1.6)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.globalAlpha=0.8;
+  ctx.fillText(c.icon,0,0);
+  ctx.restore();
+}
+function drawShark(ctx,s){
+  if(s.state==='dead'){
+    ctx.globalAlpha=0.5;
+  }
+  ctx.save();
+  ctx.translate(s.x,s.y);
+  ctx.rotate(s.ang);
+  let bite=s.biteAnim;
+  // 阴影
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(0,6,30,12,0,0,TAU); ctx.fill();
+  // 身体
+  ctx.fillStyle='#4a5560';
+  ctx.beginPath();
+  ctx.ellipse(0,0,28,12,0,0,TAU); ctx.fill();
+  // 背鳍
+  ctx.beginPath(); ctx.moveTo(-2,-10); ctx.lineTo(8,-22); ctx.lineTo(14,-10); ctx.fill();
+  // 尾鳍
+  ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(-34,-10); ctx.lineTo(-30,0); ctx.lineTo(-34,10); ctx.fill();
+  // 嘴(攻击时张开)
+  ctx.fillStyle='#1a1a1a';
+  if(bite>0){
+    ctx.beginPath(); ctx.ellipse(20,2,8,5+bite*4,0,0,TAU); ctx.fill();
+    // 牙
+    ctx.fillStyle='#fff';
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.moveTo(16+i*4,2-bite*3); ctx.lineTo(18+i*4,2); ctx.lineTo(20+i*4,2-bite*3); ctx.fill();
+    }
+  } else {
+    ctx.beginPath(); ctx.ellipse(22,2,6,2,0,0,TAU); ctx.fill();
+  }
+  // 眼睛
+  ctx.fillStyle='#e74c3c';
+  ctx.beginPath(); ctx.arc(16,-4,2,0,TAU); ctx.fill();
+  ctx.restore();
+  // 血条
+  if(s.hp<s.maxHp && s.state!=='dead'){
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.fillRect(s.x-20,s.y-28,40,4);
+    ctx.fillStyle='#e74c3c';
+    ctx.fillRect(s.x-20,s.y-28,40*(s.hp/s.maxHp),4);
+  }
+  ctx.globalAlpha=1;
+}
+function drawRaft(ctx){
+  // 按y排序绘制(简单的深度感)
+  let tiles=[...G.raft].sort((a,b)=>a.gy-b.gy);
+  for(let t of tiles){
+    let w=tileToWorld(t.gx,t.gy);
+    let x=w.x-CFG.TILE/2, y=w.y-CFG.TILE/2;
+    // 阴影
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.fillRect(x+3,y+4,CFG.TILE,CFG.TILE);
+    // 地板
+    if(t.floor==='metal'){
+      ctx.fillStyle='#9aa0a8';
+      ctx.fillRect(x,y,CFG.TILE,CFG.TILE);
+      ctx.strokeStyle='#6a7078'; ctx.lineWidth=2;
+      ctx.strokeRect(x,y,CFG.TILE,CFG.TILE);
+      ctx.beginPath();
+      ctx.moveTo(x,y+CFG.TILE/2); ctx.lineTo(x+CFG.TILE,y+CFG.TILE/2);
+      ctx.moveTo(x+CFG.TILE/2,y); ctx.lineTo(x+CFG.TILE/2,y+CFG.TILE);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle='#c08850';
+      ctx.fillRect(x,y,CFG.TILE,CFG.TILE);
+      // 木纹
+      ctx.strokeStyle='#a06840'; ctx.lineWidth=1.5;
+      ctx.strokeRect(x+2,y+2,CFG.TILE-4,CFG.TILE-4);
+      ctx.beginPath();
+      ctx.moveTo(x+CFG.TILE/2,y+4); ctx.lineTo(x+CFG.TILE/2,y+CFG.TILE-4);
+      ctx.stroke();
+      // 受损裂纹
+      if(t.hp<100){
+        ctx.strokeStyle='rgba(60,30,10,0.6)'; ctx.lineWidth=1;
+        let dmg=1-t.hp/100;
+        for(let i=0;i<dmg*4;i++){
+          ctx.beginPath();
+          ctx.moveTo(x+rand(4,CFG.TILE-4),y+rand(4,CFG.TILE-4));
+          ctx.lineTo(x+rand(4,CFG.TILE-4),y+rand(4,CFG.TILE-4));
+          ctx.stroke();
+        }
+      }
+    }
+    // 设施
+    if(t.build){
+      drawBuild(ctx, w.x, w.y, t.build, G.builds[raftKey(t.gx,t.gy)]);
+    }
+  }
+}
+function drawBuild(ctx,x,y,type,data){
+  ctx.save();
+  ctx.translate(x,y);
+  let b=BUILDS[type];
+  let s=CFG.TILE*0.8;
+  // 底座
+  ctx.fillStyle='rgba(0,0,0,0.1)';
+  ctx.beginPath(); ctx.ellipse(0,s*0.2,s*0.45,s*0.18,0,0,TAU); ctx.fill();
+  if(type==='purifier'){
+    ctx.fillStyle='#d4d4d4'; ctx.fillRect(-s*0.3,-s*0.35,s*0.6,s*0.5);
+    ctx.fillStyle='#888'; ctx.fillRect(-s*0.35,-s*0.4,s*0.7,s*0.1);
+    ctx.fillStyle='#5dade2'; ctx.beginPath(); ctx.arc(0,s*0.1,s*0.15,0,TAU); ctx.fill();
+    if((G.inventory.plastic||0)>0 && data && data.timer<15){
+      ctx.fillStyle='rgba(180,220,240,0.4)';
+      ctx.beginPath(); ctx.arc(0,-s*0.1,s*0.2,0,TAU); ctx.fill();
+    }
+  } else if(type==='grill'){
+    ctx.fillStyle='#555'; ctx.fillRect(-s*0.35,-s*0.1,s*0.7,s*0.3);
+    ctx.strokeStyle='#333'; ctx.lineWidth=2;
+    for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(i*6,-s*0.05); ctx.lineTo(i*6,s*0.15); ctx.stroke(); }
+    if(data && data.timer<10){
+      ctx.fillStyle='rgba(255,140,0,0.6)';
+      ctx.beginPath(); ctx.ellipse(0,s*0.1,s*0.25,s*0.1,0,0,TAU); ctx.fill();
+    }
+  } else if(type==='planter'){
+    ctx.fillStyle='#8b6914'; ctx.fillRect(-s*0.35,-s*0.3,s*0.7,s*0.5);
+    ctx.fillStyle='#5a3a14'; ctx.fillRect(-s*0.35,-s*0.3,s*0.7,s*0.1);
+    ctx.fillStyle='#5cb85c'; ctx.beginPath(); ctx.arc(0,-s*0.35,s*0.2,0,TAU); ctx.fill();
+    ctx.fillStyle='#2e8b57'; ctx.beginPath(); ctx.arc(-6,-s*0.4,8,0,TAU); ctx.arc(6,-s*0.38,7,0,TAU); ctx.fill();
+  } else if(type==='research'){
+    ctx.fillStyle='#8b6914'; ctx.fillRect(-s*0.4,-s*0.25,s*0.8,s*0.4);
+    ctx.fillStyle='#a0825a'; ctx.fillRect(-s*0.4,-s*0.3,s*0.8,s*0.08);
+    ctx.fillStyle='#5fd0e8'; ctx.fillRect(-s*0.1,-s*0.15,s*0.2,s*0.15);
+  } else if(type==='net'){
+    ctx.strokeStyle='rgba(200,200,200,0.6)'; ctx.lineWidth=1.5;
+    for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){
+      ctx.beginPath(); ctx.arc(i*7,j*7,3,0,TAU); ctx.stroke();
+    }
+  } else if(type==='spearstand'){
+    ctx.fillStyle='#8b6914'; ctx.fillRect(-3,-s*0.1,6,s*0.2);
+    ctx.strokeStyle='#c08850'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,-s*0.1); ctx.lineTo(0,-s*0.4); ctx.stroke();
+    ctx.fillStyle='#888'; ctx.beginPath(); ctx.moveTo(0,-s*0.45); ctx.lineTo(-4,-s*0.32); ctx.lineTo(4,-s*0.32); ctx.fill();
+  } else if(type==='storage'){
+    ctx.fillStyle='#a0825a'; ctx.fillRect(-s*0.35,-s*0.3,s*0.7,s*0.5);
+    ctx.strokeStyle='#6a4a2a'; ctx.lineWidth=2; ctx.strokeRect(-s*0.35,-s*0.3,s*0.7,s*0.5);
+    ctx.fillStyle='#8b6914'; ctx.fillRect(-s*0.05,-s*0.1,s*0.1,s*0.08);
+  } else if(type==='bed'){
+    ctx.fillStyle='#5a7a9a'; ctx.fillRect(-s*0.35,-s*0.15,s*0.7,s*0.35);
+    ctx.fillStyle='#cde'; ctx.fillRect(-s*0.3,-s*0.25,s*0.25,s*0.12);
+    ctx.fillStyle='#4a6a8a'; ctx.fillRect(-s*0.35,-s*0.2,s*0.7,s*0.08);
+  } else if(type==='smelter'){
+    ctx.fillStyle='#555'; ctx.fillRect(-s*0.3,-s*0.3,s*0.6,s*0.5);
+    ctx.fillStyle='#333'; ctx.fillRect(-s*0.15,-s*0.12,s*0.3,s*0.2);
+    if((G.inventory.scrap||0)>=2 && data && data.timer<8){
+      ctx.fillStyle='rgba(255,100,0,0.7)';
+      ctx.beginPath(); ctx.ellipse(0,-s*0.05,s*0.1,s*0.06,0,0,TAU); ctx.fill();
+    }
+    ctx.fillStyle='#777'; ctx.fillRect(-s*0.1,-s*0.42,s*0.2,s*0.12);
+  } else if(type==='birdnest'){
+    ctx.fillStyle='#8b6914'; ctx.beginPath(); ctx.arc(0,0,s*0.3,0,TAU); ctx.fill();
+    ctx.strokeStyle='#6a4a2a'; ctx.lineWidth=2;
+    for(let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(0,0,s*0.3,i/6*TAU,i/6*TAU+0.3); ctx.stroke(); }
+    if(data && data.timer>15){
+      ctx.fillStyle='#f5e6c8'; ctx.beginPath(); ctx.ellipse(0,-s*0.05,s*0.12,s*0.16,0,0,TAU); ctx.fill();
+    }
+  } else if(type==='receiver_b'){
+    ctx.fillStyle='#4a5a7a'; ctx.fillRect(-s*0.3,-s*0.25,s*0.6,s*0.4);
+    ctx.fillStyle='#1a2a3a'; ctx.fillRect(-s*0.22,-s*0.18,s*0.44,s*0.26);
+    ctx.fillStyle='#5fd0e8'; ctx.fillRect(-s*0.18,-s*0.14,s*0.36,s*0.18);
+    // 信号波纹
+    ctx.strokeStyle='rgba(95,208,232,0.5)'; ctx.lineWidth=1.5;
+    let pulse=(G.time*3)%1;
+    ctx.beginPath(); ctx.arc(0,-s*0.3,s*0.1+pulse*s*0.2,0,TAU); ctx.stroke();
+  } else if(type==='antenna_b'){
+    ctx.fillStyle='#8b6914'; ctx.fillRect(-3,0,6,s*0.2);
+    ctx.strokeStyle='#a0a0b0'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-s*0.5); ctx.stroke();
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(-s*0.15,-s*0.35); ctx.lineTo(s*0.15,-s*0.35);
+    ctx.moveTo(-s*0.1,-s*0.45); ctx.lineTo(s*0.1,-s*0.45);
+    ctx.stroke();
+    ctx.fillStyle='#e74c3c'; ctx.beginPath(); ctx.arc(0,-s*0.5,3,0,TAU); ctx.fill();
+  } else if(type==='sail_b'){
+    // 桅杆
+    ctx.fillStyle='#8b6914'; ctx.fillRect(-3,-s*0.4,6,s*0.6);
+    // 帆
+    let sway=Math.sin(G.time*1.5)*0.08;
+    ctx.save(); ctx.translate(0,-s*0.2); ctx.rotate(sway);
+    ctx.fillStyle='#e8e8d8';
+    ctx.beginPath();
+    ctx.moveTo(0,-s*0.2); ctx.lineTo(s*0.35,-s*0.05); ctx.lineTo(s*0.3,s*0.1); ctx.lineTo(0,s*0.05);
+    ctx.fill();
+    ctx.strokeStyle='#bbb'; ctx.lineWidth=1; ctx.stroke();
+    ctx.restore();
+  } else if(type==='beacon_b'){
+    ctx.fillStyle='#4a5a7a'; ctx.fillRect(-s*0.25,-s*0.15,s*0.5,s*0.3);
+    ctx.fillStyle='#1a2a3a'; ctx.beginPath(); ctx.arc(0,-s*0.2,s*0.1,0,TAU); ctx.fill();
+    // 闪烁绿灯
+    let blink=Math.sin(G.time*5)>0;
+    ctx.fillStyle=blink?'#00ff88':'#005533';
+    ctx.beginPath(); ctx.arc(0,-s*0.3,5,0,TAU); ctx.fill();
+    if(blink){
+      ctx.fillStyle='rgba(0,255,136,0.3)';
+      ctx.beginPath(); ctx.arc(0,-s*0.3,12,0,TAU); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+function drawPlayer(ctx){
+  let p=G.player;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  // 阴影
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(0,p.r*0.8,p.r,p.r*0.4,0,0,TAU); ctx.fill();
+  // 走路弹跳
+  let bob = Math.sin(p.walkAnim)*2;
+  ctx.translate(0,-bob);
+  // 身体
+  ctx.fillStyle='#e67e22';
+  ctx.beginPath(); ctx.arc(0,0,p.r,0,TAU); ctx.fill();
+  // 头
+  ctx.fillStyle='#f5cba7';
+  ctx.beginPath(); ctx.arc(0,-p.r*0.3,p.r*0.65,0,TAU); ctx.fill();
+  // 朝向指示(手臂/钩子方向)
+  ctx.save();
+  ctx.rotate(p.facing);
+  ctx.strokeStyle='#f5cba7'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(p.r*0.5,0); ctx.lineTo(p.r*1.1,0); ctx.stroke();
+  // 手持工具
+  if(G.tool==='hook'){
+    ctx.strokeStyle='#ccc'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(p.r*1.2,0,5,-Math.PI/2,Math.PI/2); ctx.stroke();
+  } else if(G.tool==='spear' && G.toolLvls.spear>0){
+    ctx.strokeStyle=G.toolLvls.spear>=2?'#a0a0b0':'#c08850'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(p.r*1.1,0); ctx.lineTo(p.r*1.8,0); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+function drawHook(ctx){
+  let h=G.hook;
+  // 绳子
+  ctx.strokeStyle='rgba(200,200,200,0.7)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(G.player.x,G.player.y); ctx.lineTo(h.x,h.y); ctx.stroke();
+  // 钩子
+  ctx.fillStyle='#ccc';
+  ctx.beginPath(); ctx.arc(h.x,h.y,5,0,TAU); ctx.fill();
+  ctx.strokeStyle='#999'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(h.x,h.y,5,-Math.PI/2,Math.PI); ctx.stroke();
+  // 捕获物
+  for(let f of h.caught){
+    ctx.fillStyle=ITEMS[f.type]?ITEMS[f.type].color:'#fff';
+    ctx.beginPath(); ctx.arc(h.x,h.y,4,0,TAU); ctx.fill();
+  }
+}
+function drawBuildPreview(ctx){
+  let {gx,gy}=worldToTile(G.input.mouseX+G.cam.x, G.input.mouseY+G.cam.y);
+  let w=tileToWorld(gx,gy);
+  ctx.save();
+  ctx.globalAlpha=0.5;
+  ctx.fillStyle=G.selectedBuild.startsWith('floor')?'#5cb85c':'#5fd0e8';
+  ctx.fillRect(w.x-CFG.TILE/2,w.y-CFG.TILE/2,CFG.TILE,CFG.TILE);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+  ctx.strokeRect(w.x-CFG.TILE/2,w.y-CFG.TILE/2,CFG.TILE,CFG.TILE);
+  ctx.restore();
+}
+function drawLights(ctx){
+  // 火把/烤架光源
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  // 玩家手持火把
+  if((G.inventory.torch||0)>0 && getDayLight()<0.6){
+    let px=G.player.x-G.cam.x, py=G.player.y-G.cam.y;
+    let g=ctx.createRadialGradient(px,py,0,px,py,120);
+    g.addColorStop(0,'rgba(255,180,80,0.5)'); g.addColorStop(1,'rgba(255,180,80,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,G.W,G.H);
+  }
+  // 烤架火光
+  for(let key in G.builds){
+    let b=G.builds[key];
+    if(b.type==='grill' && b.timer<10){
+      let [gx,gy]=key.split(',').map(Number);
+      let w=tileToWorld(gx,gy);
+      let px=w.x-G.cam.x, py=w.y-G.cam.y;
+      let g=ctx.createRadialGradient(px,py,0,px,py,80);
+      g.addColorStop(0,'rgba(255,140,0,0.4)'); g.addColorStop(1,'rgba(255,140,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,G.W,G.H);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- UI更新 ----------
+function updateStatusBar(){
+  $('hpBar').firstElementChild.style.width = (G.player.hp||100)+'%';
+  $('hungerBar').firstElementChild.style.width = (G.player.hunger||100)+'%';
+  $('thirstBar').firstElementChild.style.width = (G.player.thirst||100)+'%';
+  $('dayInfo').textContent = (G.dayTime<0.25||G.dayTime>0.75?'🌙':'☀️')+' 第'+G.day+'天';
+  $('timeInfo').textContent = '🕐 '+getTimeString();
+  let wn={sunny:'☀️ 晴',cloudy:'☁️ 多云',rainy:'🌧️ 雨',storm:'⛈️ 暴风雨'};
+  $('weatherInfo').textContent = wn[G.weather];
+}
+function updateHotbar(){
+  let bar=$('hotbar');
+  let slots=[
+    {tool:'hook',icon:'🪝',key:'1'},
+    {tool:'spear',icon:'🔱',key:'2'},
+    {item:'cookedfish',icon:'🐟',key:'3'},
+    {item:'rawfish',icon:'🐠',key:'4'},
+    {item:'water',icon:'💧',key:'5'},
+    {item:'potato',icon:'🥔',key:'6'},
+  ];
+  bar.innerHTML='';
+  slots.forEach((s,i)=>{
+    let el=document.createElement('div');
+    el.className='slot'+(s.tool&&G.tool===s.tool?' active':'');
+    let icon=s.icon;
+    let count='';
+    if(s.item){ count=(G.inventory[s.item]||0); if(count<=0) icon='·'; }
+    if(s.tool==='spear' && G.toolLvls.spear<1){ icon='·'; }
+    el.innerHTML=`<span class="key">${s.key}</span>${icon}${count?`<span class="count">${count}</span>`:''}`;
+    el.onclick=()=>{
+      if(s.tool){ G.tool=s.tool; updateHotbar(); }
+      else if(s.item && (G.inventory[s.item]||0)>0){ consume(s.item); }
+    };
+    bar.appendChild(el);
+  });
+}
+function updateInventoryUI(){
+  let grid=$('invGrid');
+  grid.innerHTML='';
+  let entries=Object.entries(G.inventory).filter(([k,v])=>v>0);
+  if(entries.length===0){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#678;padding:30px;">背包空空如也，去收集资源吧！</div>';
+    return;
+  }
+  for(let [type,count] of entries){
+    let item=ITEMS[type]||{name:type,icon:'❓'};
+    let el=document.createElement('div');
+    el.className='inv-slot';
+    el.innerHTML=`<div class="is-icon">${item.icon}</div><div class="is-name">${item.name}</div><div class="is-count">×${count}</div>`;
+    // 可食用物品点击消耗
+    if(['cookedfish','rawfish','potato','water'].includes(type)){
+      el.style.cursor='pointer';
+      el.onclick=()=>consume(type);
+    }
+    grid.appendChild(el);
+  }
+}
+function updateCraftUI(cat){
+  let grid=$('craftGrid');
+  let tabs=$('craftTabs');
+  let cats=['基础','食物','工具','科技'];
+  if(!G.researchUnlocked) cats = cats.filter(c=>c!=='科技');
+  currentCraftCat = cat;
+  tabs.innerHTML='';
+  cats.forEach(c=>{
+    let el=document.createElement('div');
+    el.className='cat-tab'+(c===cat?' active':'');
+    el.textContent=c; el.onclick=()=>updateCraftUI(c);
+    tabs.appendChild(el);
+  });
+  grid.innerHTML='';
+  for(let id in RECIPES){
+    let r=RECIPES[id];
+    if(r.cat!==cat) continue;
+    // 升级类检查等级
+    if(r.isUpgrade==='hook' && G.toolLvls.hook>=r.lvl) continue;
+    if(r.isUpgrade==='spear' && G.toolLvls.spear>=r.lvl) continue;
+    if(r.needFire && !hasFire()) continue;
+    if(r.needResearch && !G.researchUnlocked) continue;
+    let can=hasItems(r.cost);
+    let el=document.createElement('div');
+    el.className='craft-item'+(can?'':' cant');
+    let name = r.isUpgrade ? r.desc : (r.out[Object.keys(r.out)[0]]?ITEMS[Object.keys(r.out)[0]].name:id);
+    let costHtml=Object.entries(r.cost).map(([k,v])=>{
+      let have=G.inventory[k]||0;
+      return `<span class="${have>=v?'ok':'no'}">${ITEMS[k]?ITEMS[k].icon:''}${ITEMS[k]?ITEMS[k].name:k} ×${v}</span>`;
+    }).join(' ');
+    el.innerHTML=`<div class="ci-name">${name}</div><div class="ci-desc">${r.desc}</div><div class="ci-cost">${costHtml}</div>`;
+    el.onclick=()=>{ if(can) craftItem(id); };
+    grid.appendChild(el);
+  }
+  if(!grid.children.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#678;padding:20px;">暂无可制作物品</div>';
+  }
+}
+function hasFire(){
+  for(let key in G.builds) if(G.builds[key].type==='grill') return true;
+  return false;
+}
+function craftItem(id){
+  let r=RECIPES[id];
+  if(!hasItems(r.cost)) return;
+  payItems(r.cost);
+  if(r.isUpgrade==='hook'){ G.toolLvls.hook=r.lvl; toast('🪝 钩子升级到Lv'+r.lvl+'！','ach'); }
+  else if(r.isUpgrade==='spear'){ G.toolLvls.spear=r.lvl; toast('🔱 矛升级到Lv'+r.lvl+'！','ach'); }
+  else { for(let k in r.out) addItem(k, r.out[k]); }
+  G.stats.crafted++;
+  updateInventoryUI(); updateCraftUI(r.cat); updateHotbar();
+  checkAchievements();
+  checkQuestProgress();
+}
+function updateBuildUI(){
+  let grid=$('buildGrid');
+  // 按分类分组
+  let cats=['木筏','设施','科技'];
+  grid.innerHTML='';
+  for(let cat of cats){
+    let hasCat=false;
+    for(let id in BUILDS){ if(BUILDS[id].cat===cat) hasCat=true; }
+    if(!hasCat) continue;
+    // 科技类需要研究桌
+    if(cat==='科技' && !G.researchUnlocked) continue;
+    let header=document.createElement('div');
+    header.style.cssText='grid-column:1/-1;color:#5fd0e8;font-size:14px;font-weight:700;margin:6px 0 2px;border-bottom:1px solid rgba(95,208,232,.2);padding-bottom:4px;';
+    header.textContent=cat;
+    grid.appendChild(header);
+    for(let id in BUILDS){
+      let b=BUILDS[id];
+      if(b.cat!==cat) continue;
+      // 科技建造需要对应物品
+      let prereqMet = true;
+      if(id==='receiver_b' && !(G.inventory.receiver||0>0)) prereqMet=false;
+      if(id==='antenna_b' && !(G.inventory.antenna||0>0)) prereqMet=false;
+      if(id==='sail_b' && !(G.inventory.sail||0>0)) prereqMet=false;
+      if(id==='beacon_b' && !(G.inventory.beacon||0>0)) prereqMet=false;
+      if(!prereqMet) continue;
+      let can=hasItems(b.cost);
+      let el=document.createElement('div');
+      el.className='craft-item'+(can?'':' cant');
+      let costHtml=Object.entries(b.cost).map(([k,v])=>{
+        let have=G.inventory[k]||0;
+        return `<span class="${have>=v?'ok':'no'}">${ITEMS[k]?ITEMS[k].icon:''}${ITEMS[k]?ITEMS[k].name:k} ×${v}</span>`;
+      }).join(' ');
+      el.innerHTML=`<div class="ci-name">${b.icon} ${b.name}</div><div class="ci-desc">${b.desc}</div><div class="ci-cost">${costHtml}</div>`;
+      el.onclick=()=>{
+        if(!can){ toast('资源不足','bad'); return; }
+        G.selectedBuild=id;
+        $('buildPanel').classList.add('hidden');
+        $('buildHint').style.display='block';
+        $('buildHint').textContent='点击海面放置 '+b.name+'（按ESC取消）';
+      };
+      grid.appendChild(el);
+    }
+  }
+}
+
+// ---------- 游戏主循环 ----------
+let lastTime=0;
+function gameLoop(ts){
+  if(G.state!=='playing'){ requestAnimationFrame(gameLoop); return; }
+  let dt = Math.min((ts-lastTime)/1000, 0.05);
+  lastTime = ts;
+  G.time += dt;
+  // 昼夜
+  G.dayTime += dt/CFG.DAY_LENGTH;
+  if(G.dayTime>=1){ G.dayTime-=1; G.day++; G.stats.days=G.day; toast('🌅 第'+G.day+'天到来','ach'); checkAchievements(); }
+  // 漂浮物生成
+  G.lastFloatSpawn += dt;
+  let spawnRate = CFG.FLOAT_SPAWN_INTERVAL - Math.min(G.day*0.05, 0.6);
+  if(G.lastFloatSpawn>=spawnRate){ G.lastFloatSpawn=0; spawnFloat(); }
+  updateFloats(dt);
+  updatePlayer(dt);
+  updateHook(dt);
+  updateShark(dt);
+  updateCreatures(dt);
+  updateWeather(dt);
+  updateBuilds(dt);
+  updateSurvival(dt);
+  updateParticles(dt);
+  updateSailing(dt);
+  checkQuestProgress();
+  updateQuestTracker();
+  // 偶尔生成生物
+  if(Math.random()<dt*0.1 && G.creatures.length<4) spawnCreature();
+  // 偶尔生成岛屿
+  if(!G.island && Math.random()<dt*0.01){
+    let ang=Math.random()*TAU;
+    G.island={x:G.raftCenter.x+Math.cos(ang)*600, y:G.raftCenter.y+Math.sin(ang)*600, r:rand(80,120), life:120};
+  }
+  if(G.island){
+    G.island.life-=dt;
+    if(G.island.life<=0) G.island=null;
+  }
+  updateStatusBar();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// ---------- 游戏结束 ----------
+function gameOver(reason){
+  G.state='dead';
+  $('endTitle').textContent='☠️ 你没能活下去...';
+  $('endStats').innerHTML=`存活天数：<b>${G.day}</b>　收集资源：<b>${G.stats.collected}</b><br>击败鲨鱼：<b>${G.stats.killed}</b>　建造数量：<b>${G.stats.built}</b><br>解锁成就：<b>${G.achievements.size}/${Object.keys(ACHIEVEMENTS).length}</b><br>主线进度：<b>${G.questCompleted.size}/${QUESTS.length}章</b><br><br>${reason}`;
+  $('endScreen').classList.remove('hidden');
+}
+function gameWin(){
+  G.state='win';
+  $('winStats').innerHTML=`存活天数：<b>${G.day}</b>　收集资源：<b>${G.stats.collected}</b><br>击败鲨鱼：<b>${G.stats.killed}</b>　建造数量：<b>${G.stats.built}</b><br>解锁成就：<b>${G.achievements.size}/${Object.keys(ACHIEVEMENTS).length}</b><br>主线任务：<b>全部完成 (${QUESTS.length}/${QUESTS.length}章)</b>`;
+  $('winScreen').classList.remove('hidden');
+}
+
+// ---------- 开始游戏 ----------
+function startGame(){
+  G.state='playing';
+  G.time=0; G.day=1; G.dayTime=0.25;
+  G.inventory={};
+  G.toolLvls={hook:1, spear:0};
+  G.tool='hook';
+  G.player={x:0,y:0,vx:0,vy:0,r:14,facing:0,walkAnim:0,hp:100,hunger:100,thirst:100};
+  G.raft=[]; G.floats=[]; G.creatures=[]; G.builds={}; G.particles=[]; G.rainDrops=[];
+  G.hook=null; G.shark=null; G.island=null; G.achievements=new Set();
+  G.stats={days:1,collected:0,built:0,killed:0,crafted:0};
+  G.weather='sunny'; G.weatherTimer=40; G.selectedBuild=null;
+  // 重置主线任务
+  G.currentQuestIdx=0; G.questCompleted=new Set();
+  G.researchUnlocked=false; G.sailing=false; G.sailSpeed=0; G.sailDir=0;
+  G.signalDir=Math.random()*TAU;
+  G.raftCenter={x:0,y:0};
+  initRaft();
+  spawnShark();
+  G.shark.attackTimer = CFG.SHARK_ATTACK_INTERVAL;
+  addItem('plank',4); addItem('leaf',2); addItem('plastic',2);
+  // UI
+  $('startScreen').classList.add('hidden');
+  $('endScreen').classList.add('hidden');
+  $('winScreen').classList.add('hidden');
+  $('topBar').classList.remove('hidden');
+  $('funcButtons').classList.remove('hidden');
+  $('hotbar').classList.remove('hidden');
+  $('compass').style.display='none';
+  if(isMobile()) $('mobileControls').style.display='block';
+  updateInventoryUI(); updateHotbar(); updateCraftUI('基础'); updateBuildUI();
+  updateQuestTracker();
+  lastTime=performance.now();
+  requestAnimationFrame(gameLoop);
+  toast('🎮 欢迎来到木筏求生2！完成主线任务逃离大海','');
+  setTimeout(()=>toast('📋 当前任务：'+getCurrentQuest().obj,'ach'), 1500);
+}
+
+function isMobile(){
+  return ('ontouchstart' in window) || navigator.maxTouchPoints>0 || /Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+
+// ---------- 输入处理 ----------
+function initInput(){
+  window.addEventListener('keydown',e=>{
+    let k=e.key.toLowerCase();
+    G.input.keys[k]=true;
+    if(k==='b') togglePanel('inventoryPanel');
+    if(k==='c') togglePanel('craftPanel');
+    if(k==='tab'){ e.preventDefault(); togglePanel('buildPanel'); }
+    if(k==='e') interact();
+    if(k==='q') showQuestInfo();
+    if(k==='escape'){ closeAllPanels(); G.selectedBuild=null; $('buildHint').style.display='none'; }
+    if(k===' ') throwHook();
+    if(k>='1'&&k<='6'){ selectHotbar(parseInt(k)-1); }
+    // 航行控制
+    if(k==='g' && countBuild('sail_b')) { G.sailing=!G.sailing; toast(G.sailing?'⛵ 升帆航行！':'⚓ 停止航行','ach'); }
+    if(k==='r' && countBuild('sail_b')) { G.sailDir-=0.3; }
+    if(k==='f' && countBuild('sail_b')) { G.sailDir+=0.3; }
+  });
+  window.addEventListener('keyup',e=>{ G.input.keys[e.key.toLowerCase()]=false; });
+  // 鼠标
+  G.canvas.addEventListener('mousemove',e=>{
+    G.input.mouseX=e.clientX; G.input.mouseY=e.clientY;
+  });
+  G.canvas.addEventListener('mousedown',e=>{
+    if(G.state!=='playing') return;
+    if(G.selectedBuild){
+      let {gx,gy}=worldToTile(e.clientX+G.cam.x, e.clientY+G.cam.y);
+      tryBuild(gx,gy,G.selectedBuild);
+      G.selectedBuild=null; $('buildHint').style.display='none';
+      return;
+    }
+    if(G.tool==='hook') throwHook();
+    else if(G.tool==='spear') attackShark();
+  });
+  G.canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  // 触控(除了摇杆和按钮区域)
+  G.canvas.addEventListener('touchstart',e=>{
+    if(G.state!=='playing') return;
+    // 如果触摸在控制区域，不处理
+    if(e.target.closest('#mobileControls')) return;
+    if(G.selectedBuild){
+      let t=e.touches[0];
+      let {gx,gy}=worldToTile(t.clientX+G.cam.x, t.clientY+G.cam.y);
+      tryBuild(gx,gy,G.selectedBuild);
+      G.selectedBuild=null; $('buildHint').style.display='none';
+      return;
+    }
+    // 触控瞄准并投钩
+    let t=e.touches[0];
+    let wx=t.clientX+G.cam.x, wy=t.clientY+G.cam.y;
+    G.player.facing=Math.atan2(wy-G.player.y,wx-G.player.x);
+    if(G.tool==='hook') throwHook();
+    else if(G.tool==='spear') attackShark();
+  });
+  // 虚拟摇杆
+  let joy=$('joystick'), knob=$('joystickKnob');
+  let joyRect;
+  function joyStart(e){
+    e.preventDefault();
+    joyRect=joy.getBoundingClientRect();
+    G.input.joyActive=true;
+    joyMove(e);
+  }
+  function joyMove(e){
+    if(!G.input.joyActive) return;
+    e.preventDefault();
+    let t=e.touches?e.touches[0]:e;
+    let cx=joyRect.left+joyRect.width/2, cy=joyRect.top+joyRect.height/2;
+    let dx=t.clientX-cx, dy=t.clientY-cy;
+    let d=Math.hypot(dx,dy), max=joyRect.width/2;
+    if(d>max){ dx=dx/d*max; dy=dy/d*max; }
+    knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+    G.input.joyDX=dx/max; G.input.joyDY=dy/max;
+  }
+  function joyEnd(e){
+    G.input.joyActive=false;
+    G.input.joyDX=0; G.input.joyDY=0;
+    knob.style.transform='translate(-50%,-50%)';
+  }
+  joy.addEventListener('touchstart',joyStart,{passive:false});
+  joy.addEventListener('touchmove',joyMove,{passive:false});
+  joy.addEventListener('touchend',joyEnd);
+  // 动作按钮
+  $('btnThrow').addEventListener('touchstart',e=>{ e.preventDefault(); if(G.tool==='hook')throwHook(); else attackShark(); },{passive:false});
+  $('btnThrow').addEventListener('click',()=>{ if(G.tool==='hook')throwHook(); else attackShark(); });
+  $('btnInteract').addEventListener('touchstart',e=>{ e.preventDefault(); interact(); },{passive:false});
+  $('btnInteract').addEventListener('click',interact);
+}
+function selectHotbar(i){
+  let tools=['hook','spear'];
+  let items=['cookedfish','rawfish','water','potato'];
+  if(i<2){
+    if(i===1 && G.toolLvls.spear<1) return;
+    G.tool=tools[i]; updateHotbar();
+  } else {
+    let item=items[i-2];
+    if(G.inventory[item]>0) consume(item);
+  }
+}
+function interact(){
+  // 与设施互动(简化：靠近设施时自动生效，这里用于快速使用)
+  let {gx,gy}=worldToTile(G.player.x,G.player.y);
+  let tile=getTile(gx,gy);
+  if(tile && tile.build){
+    let b=G.builds[raftKey(gx,gy)];
+    if(tile.build==='research'){ updateCraftUI('工具'); togglePanel('craftPanel'); }
+    else if(tile.build==='purifier'){ toast('💧 蒸馏器自动工作中(需塑料)',''); }
+    else if(tile.build==='grill'){ toast('🔥 烤架自动工作中(需木板+生鱼)',''); }
+    else if(tile.build==='sail_b'){
+      G.sailing=!G.sailing;
+      toast(G.sailing?'⛵ 升帆航行！按R/F调整方向':'⚓ 停止航行','ach');
+    }
+    else if(tile.build==='bed'){
+      // 睡觉跳到白天
+      if(getDayLight()<0.5){
+        G.dayTime=0.25; G.player.hp=Math.min(100,G.player.hp+30);
+        toast('🛏️ 睡了一觉，恢复精力','good');
+      } else { toast('现在不是夜晚',''); }
+    }
+  }
+}
+function showQuestInfo(){
+  let q=getCurrentQuest();
+  if(!q){ toast('所有主线任务已完成！','ach'); return; }
+  toast('📋 '+q.title+'：'+q.obj,'ach');
+}
+function togglePanel(id){
+  let p=$(id);
+  let open=!p.classList.contains('hidden');
+  closeAllPanels();
+  if(!open){
+    p.classList.remove('hidden');
+    if(id==='craftPanel') updateCraftUI('基础');
+    if(id==='buildPanel') updateBuildUI();
+    if(id==='inventoryPanel') updateInventoryUI();
+  }
+}
+function closeAllPanels(){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden'));
+}
+
+// ---------- 按钮绑定 ----------
+function initButtons(){
+  $('startBtn').onclick=startGame;
+  $('helpBtn').onclick=()=>$('helpBox').style.display='block';
+  $('helpClose').onclick=()=>$('helpBox').style.display='none';
+  $('endRestart').onclick=startGame;
+  $('winRestart').onclick=startGame;
+  $('btnInventory').onclick=()=>togglePanel('inventoryPanel');
+  $('btnCraft').onclick=()=>togglePanel('craftPanel');
+  $('btnBuild').onclick=()=>togglePanel('buildPanel');
+  $('btnQuest').onclick=showQuestInfo;
+  $('btnPause').onclick=()=>{
+    if(G.state==='playing'){ G.state='paused'; toast('⏸️ 已暂停',''); }
+    else if(G.state==='paused'){ G.state='playing'; lastTime=performance.now(); toast('▶️ 继续',''); }
+  };
+  document.querySelectorAll('[data-close]').forEach(b=>{
+    b.onclick=()=>closeAllPanels();
+  });
+  // 点击画布取消建造选择
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){ G.selectedBuild=null; $('buildHint').style.display='none'; }
+  });
+}
+
+// ---------- 启动 ----------
+window.addEventListener('load',()=>{
+  initCanvas();
+  initInput();
+  initButtons();
+  // 即使在菜单也渲染背景海洋
+  renderMenuBg();
+});
+function renderMenuBg(){
+  if(G.state==='menu'){
+    let ctx=G.ctx;
+    let g=ctx.createLinearGradient(0,0,0,G.H);
+    g.addColorStop(0,'#0d3a5c'); g.addColorStop(1,'#2a9db8');
+    ctx.fillStyle=g; ctx.fillRect(0,0,G.W,G.H);
+    ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=2;
+    let t=performance.now()*0.001;
+    for(let i=0;i<8;i++){
+      let y=i*G.H/8+Math.sin(t+i)*8;
+      ctx.beginPath();
+      for(let x=0;x<G.W;x+=20){ ctx.lineTo(x,y+Math.sin(x*0.02+t+i)*6); }
+      ctx.stroke();
+    }
+    requestAnimationFrame(renderMenuBg);
+  }
+}
+</script>
+</body>
+</html>
