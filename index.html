@@ -327,6 +327,37 @@ const dist = (x1,y1,x2,y2) => Math.hypot(x2-x1,y2-y1);
 const lerp = (a,b,t) => a+(b-a)*t;
 const TAU = Math.PI*2;
 
+// ---------- 角色精灵图加载 ----------
+let playerSprite = { img:null, ready:false };
+(function loadPlayerSprite(){
+  let img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function(){
+    try {
+      let off = document.createElement('canvas');
+      off.width = img.width; off.height = img.height;
+      let octx = off.getContext('2d');
+      octx.drawImage(img, 0, 0);
+      let imgData = octx.getImageData(0, 0, off.width, off.height);
+      let d = imgData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 235 && d[i+1] > 235 && d[i+2] > 235) {
+          d[i+3] = 0;
+        } else if (d[i] > 200 && d[i+1] > 200 && d[i+2] > 200) {
+          d[i+3] = Math.round((255 - d[i]) * 4);
+        }
+      }
+      octx.putImageData(imgData, 0, 0);
+      playerSprite.img = off;
+      playerSprite.ready = true;
+    } catch(e) {
+      playerSprite.ready = false;
+    }
+  };
+  img.onerror = function(){ playerSprite.ready = false; };
+  img.src = 'player_sprite.jpg';
+})();
+
 // ---------- 游戏配置 ----------
 const CFG = {
   TILE: 56,            // 木筏格子大小
@@ -582,7 +613,7 @@ function spawnFloat(){
   let x = G.raftCenter.x + Math.cos(ang)*d;
   let y = G.raftCenter.y + Math.sin(ang)*d;
   G.floats.push({
-    x,y, type, r: rand(10,16),
+    x,y, type, r: rand(20,28),
     vx: -Math.cos(ang)*rand(0.04,0.12) + rand(-0.03,0.03),
     vy: -Math.sin(ang)*rand(0.04,0.12) + rand(-0.03,0.03),
     bob: Math.random()*TAU, rot: Math.random()*TAU,
@@ -597,6 +628,11 @@ function updateFloats(dt){
     f.y += f.vy;
     f.bob += 0.05;
     f.rot += 0.01;
+    // 碰到木筏自动拾取
+    if(isOnRaft(f.x, f.y)){
+      collectFloat(f);
+      continue;
+    }
     // 漂太远移除
     let d = dist(f.x,f.y,G.raftCenter.x,G.raftCenter.y);
     if(d > Math.max(G.W,G.H)*0.8) G.floats.splice(i,1);
@@ -2047,10 +2083,18 @@ function drawPlayer(ctx){
   // 阴影
   ctx.fillStyle='rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(0,R*0.9,R*1.1,R*0.4,0,0,TAU); ctx.fill();
-  // 走路弹跳+左右摆动
+  // 走路弹跳
   let bob=Math.sin(p.walkAnim)*2;
-  let sway=Math.sin(p.walkAnim*0.5)*0.04;
-  ctx.translate(0,-bob);
+  if(playerSprite.ready){
+    // === 精灵图角色 ===
+    ctx.save();
+    ctx.translate(0, -bob);
+    let ss = R * 3.2;
+    ctx.drawImage(playerSprite.img, -ss/2, -ss*0.55, ss, ss);
+    ctx.restore();
+  } else {
+    let sway=Math.sin(p.walkAnim*0.5)*0.04;
+    ctx.translate(0,-bob);
   // === 腿(走路动画) ===
   let legSwing=Math.sin(p.walkAnim)*4;
   ctx.strokeStyle='#3a4a5a'; ctx.lineWidth=5; ctx.lineCap='round';
@@ -2124,6 +2168,7 @@ function drawPlayer(ctx){
   ctx.fillStyle='rgba(220,120,100,0.2)';
   ctx.beginPath(); ctx.arc(-R*0.2,R*0.08,2.5,0,TAU); ctx.arc(R*0.2,R*0.08,2.5,0,TAU); ctx.fill();
   ctx.restore();
+  }
   // === 手臂+工具(朝向) ===
   ctx.save();
   ctx.rotate(p.facing);
