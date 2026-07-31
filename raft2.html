@@ -209,7 +209,6 @@ html,body { width:100%; height:100%; overflow:hidden; background:#0a1a2a; font-f
   <div id="funcButtons" class="hidden">
     <div class="fbtn" id="btnInventory" title="背包(B)">🎒</div>
     <div class="fbtn" id="btnCraft" title="制作(C)">🔨</div>
-    <div class="fbtn" id="btnBuild" title="建造(Tab)">🏗️</div>
     <div class="fbtn" id="btnQuest" title="任务(Q)">📋</div>
     <div class="fbtn" id="btnPause" title="暂停">⏸️</div>
   </div>
@@ -282,22 +281,22 @@ html,body { width:100%; height:100%; overflow:hidden; background:#0a1a2a; font-f
   <button class="menu-btn secondary" id="helpBtn">📖 游戏说明</button>
   <div id="helpBox">
     <h3>🎮 操作方式</h3>
-    <b>电脑端：</b>WASD/方向键移动 · 鼠标瞄准 · 左键投钩 · E互动 · B背包 · C制作 · Tab建造 · Q任务 · 1-6切换工具<br>
-    <b>航行：</b>建造帆架后，按G升/降帆 · R/F调整航向 · E互动帆架也可切换<br>
-    <b>手机端：</b>左下摇杆移动 · 右下按钮投钩/互动 · 顶部按钮打开背包/制作/建造<br><br>
+    <b>电脑端：</b>WASD/方向键移动 · 鼠标瞄准 · 左键投钩 · E互动 · B背包 · C制作 · Q任务 · 1-6切换工具<br>
+    <b>航行：</b>木筏升级到9级后，按G升/降帆 · R/F调整航向<br>
+    <b>手机端：</b>左下摇杆移动 · 右下按钮投钩/互动 · 顶部按钮打开背包/制作/任务<br><br>
     <h3>🪝 核心玩法</h3>
     用钩子捕获海上漂浮的木板、塑料、棕榈叶等资源。管理<b>饥饿值</b>🍖和<b>口渴值</b>💧，否则生命值会下降。<br>
-    <b>扩建木筏</b>：制作木板后，在建造菜单放置地板扩展木筏。<br>
-    <b>生存设施</b>：建造蒸馏器获取淡水、烤架烹饪鱼肉、种植园种土豆、研究桌解锁配方。<br>
-    <b>防御鲨鱼</b>🦈：鲨鱼会定期啃咬木筏！用木矛攻击它，或建造加固地板保护木筏。<br><br>
-    <h3>📋 主线任务（新增！）</h3>
-    不再只是无尽收集！完成7章主线剧情，最终建造信标呼叫救援逃脱：<br>
-    <b>第一章</b>收集资源 → <b>第二章</b>建造设施 → <b>第三章</b>击败鲨鱼 → <b>第四章</b>研究科技<br>
-    → <b>第五章</b>信号追踪(接收器+天线) → <b>第六章</b>扬帆起航 → <b>终章</b>放置信标获救！<br><br>
-    <h3>🏗️ 丰富建造（新增！）</h3>
-    <b>生存设施</b>：蒸馏器、烤架、种植园、研究桌、收集网、矛架<br>
-    <b>新增设施</b>：储物箱(扩容)、床铺(睡觉回血)、熔炉(加速炼金属)、鸟巢(产蛋)<br>
-    <b>科技建筑</b>：接收器站、天线塔、帆架、信标台(需研究桌解锁)<br><br>
+    <b>木筏升级</b>：完成主线任务自动升级木筏，解锁新设施和更大空间，无需手动扩建。<br>
+    <b>生存设施</b>：升级木筏自动获得蒸馏器、烤架、种植园、研究桌等设施。<br>
+    <b>防御鲨鱼</b>🦈：鲨鱼会定期啃咬木筏！用木矛攻击它。<br><br>
+    <h3>📋 主线任务（10章）</h3>
+    完成10章主线剧情，通过任务自动升级木筏，最终建造信标呼叫救援逃脱：<br>
+    <b>第1章</b>收集资源 → <b>第2章</b>淡水保障 → <b>第3章</b>热食供应 → <b>第4章</b>自给自足<br>
+    → <b>第5章</b>科技启蒙 → <b>第6章</b>工业时代 → <b>第7章</b>繁荣发展 → <b>第8章</b>信号追踪<br>
+    → <b>第9章</b>扬帆起航 → <b>终章</b>求救信号获救！<br><br>
+    <h3>🏗️ 自动建造系统</h3>
+    <b>设施</b>：蒸馏器、烤架、种植园、研究桌、收集网、矛架、储物箱、床铺、熔炉、鸟巢<br>
+    <b>科技建筑</b>：接收器站、天线塔、帆架、信标台（随木筏升级自动放置）<br><br>
     <h3>🌊 续集特性</h3>
     <b>天气系统</b>：晴天、多云、雨天（自动收集淡水）、暴风雨（危险！）<br>
     <b>昼夜循环</b>：夜晚视野受限，需要火把照明<br>
@@ -307,7 +306,7 @@ html,body { width:100%; height:100%; overflow:hidden; background:#0a1a2a; font-f
     <b>成就系统</b>：完成挑战解锁成就<br>
     <b>更多生物</b>：海龟、水母、鲸鱼等海洋生物<br><br>
     <h3>🏆 生存目标</h3>
-    尽可能长久地活下去，扩建你的海上家园，挑战生存天数纪录！
+    尽可能长久地活下去，通过任务升级木筏，挑战生存天数纪录！
     <button class="menu-btn secondary" id="helpClose" style="margin-top:16px">关闭</button>
   </div>
 </div>
@@ -435,8 +434,6 @@ const TOOLS = {
 
 // 建造定义
 const BUILDS = {
-  floor:    {name:'木地板',icon:'⬜',cost:{plank:2},cat:'木筏',desc:'扩展木筏基础地板'},
-  floor_metal:{name:'金属地板',icon:'🔲',cost:{plank:1,metal:1},cat:'木筏',desc:'加固地板，鲨鱼咬不坏'},
   purifier: {name:'蒸馏器',icon:'💧',cost:{plank:4,rope:2,plastic:2},cat:'设施',desc:'将海水蒸馏为淡水'},
   grill:    {name:'烤架',icon:'🔥',cost:{plank:3,scrap:3,rope:1},cat:'设施',desc:'烤制食物(需木板燃料)'},
   planter:  {name:'种植园',icon:'🪴',cost:{plank:4,leaf:4,rope:2},cat:'设施',desc:'种植土豆'},
@@ -451,41 +448,59 @@ const BUILDS = {
   antenna_b:{name:'天线塔',icon:'📡',cost:{plank:3,antenna:1,metal:2,bolt:2},cat:'科技',desc:'放置天线，增强信号(主线)'},
   sail_b:   {name:'帆架',icon:'⛵',cost:{plank:6,sail:1,rope:4},cat:'科技',desc:'放置帆，可改变航行方向(主线)'},
   beacon_b: {name:'信标台',icon:'🟢',cost:{plank:4,beacon:1,circuit:2},cat:'科技',desc:'放置信标，呼叫救援(主线终局)'},
-  // 房屋建筑
-  wall:     {name:'木墙',icon:'🧱',cost:{plank:4,nail:2},cat:'房屋',desc:'建造墙壁，组成房屋骨架'},
-  wall_metal:{name:'金属墙',icon:'🏦',cost:{plank:2,metal:2,bolt:2},cat:'房屋',desc:'坚固金属墙，防御更强'},
-  roof:     {name:'屋顶',icon:'🏠',cost:{plank:6,leaf:4,rope:2},cat:'房屋',desc:'建造屋顶，遮风挡雨'},
-  door:     {name:'木门',icon:'🚪',cost:{plank:4,nail:2,rope:1},cat:'房屋',desc:'安装门，进出房屋'},
-  window:   {name:'窗户',icon:'🪟',cost:{plank:3,plastic:2},cat:'房屋',desc:'安装窗户，采光通风'},
-  floor_house:{name:'房屋地板',icon:'🟫',cost:{plank:3,nail:1},cat:'房屋',desc:'室内地板，铺在房屋下方'},
 };
 
-// ---------- 主线任务系统 ----------
-const QUESTS = [
-  { id:'q1', title:'第一章：漂流之初', desc:'收集资源，建立基本生存保障', 
-    obj:'收集10个资源', check:()=>G.stats.collected>=10,
-    reward:{plank:4,rope:2}, rewardText:'4木板+2绳子', next:'q2' },
-  { id:'q2', title:'第二章：站稳脚跟', desc:'扩展木筏，建造蒸馏器和烤架',
-    obj:'建造蒸馏器+烤架+扩展木筏到12格', check:()=>countBuild('purifier')>=1 && countBuild('grill')>=1 && G.raft.length>=12,
-    reward:{plank:6,scrap:3}, rewardText:'6木板+3废铁', next:'q3' },
-  { id:'q3', title:'第三章：击退威胁', desc:'制作武器，击败第一只鲨鱼',
-    obj:'击败1只鲨鱼+制作木矛', check:()=>G.stats.killed>=1 && G.toolLvls.spear>=1,
-    reward:{metal:2,scrap:4}, rewardText:'2金属+4废铁', next:'q4' },
-  { id:'q4', title:'第四章：科技启蒙', desc:'建造研究桌，解锁科技配方',
-    obj:'建造研究桌+制作电路板', check:()=>countBuild('research')>=1 && (G.inventory.circuit||0)>=1,
-    reward:{circuit:1,plastic:4}, rewardText:'1电路板+4塑料', next:'q5' },
-  { id:'q5', title:'第五章：信号追踪', desc:'制作接收器和天线，追踪神秘信号',
-    obj:'建造接收器站+天线塔', check:()=>countBuild('receiver_b')>=1 && countBuild('antenna_b')>=1,
-    reward:{metal:3,bolt:4}, rewardText:'3金属+4螺栓', next:'q6' },
-  { id:'q6', title:'第六章：扬帆起航', desc:'建造帆架，驾驶木筏前往信号源',
-    obj:'建造帆架+生存到第4天', check:()=>countBuild('sail_b')>=1 && G.day>=4,
-    reward:{beacon:0}, rewardText:'解锁信标配方', next:'q7',
-    onComplete:()=>{ toast('📡 信号源方向已锁定！制作信标呼叫救援','ach'); } },
-  { id:'q7', title:'终章：求救信号', desc:'制作并放置信标，等待救援到来',
-    obj:'放置信标台', check:()=>countBuild('beacon_b')>=1,
-    reward:{}, rewardText:'救援即将到来！', next:null,
-    onComplete:()=>{ setTimeout(()=>gameWin(), 5000); } },
+// 木筏等级配置 (10级)
+const RAFT_LEVELS = [
+  { lv:1, name:'简陋木筏', half:1, builds:{},
+    title:'第一章：漂流之初', obj:'收集10个资源', check:()=>G.stats.collected>=10,
+    reward:{plank:4,rope:2}, rewardText:'4木板+2绳子' },
+  { lv:2, name:'生存木筏', half:1, builds:{'0,-1':'purifier'},
+    title:'第二章：淡水保障', obj:'收集20个资源+存活到第2天', check:()=>G.stats.collected>=20 && G.day>=2,
+    reward:{plank:4,plastic:2}, rewardText:'4木板+2塑料' },
+  { lv:3, name:'热食木筏', half:2, builds:{'0,-2':'purifier','1,-2':'grill'},
+    title:'第三章：热食供应', obj:'击败1只鲨鱼', check:()=>G.stats.killed>=1,
+    reward:{scrap:4,plank:3}, rewardText:'4废铁+3木板' },
+  { lv:4, name:'自给木筏', half:2, builds:{'0,-2':'purifier','1,-2':'grill','-1,-1':'planter','2,-1':'storage'},
+    title:'第四章：自给自足', obj:'收集40个资源+制作木矛', check:()=>G.stats.collected>=40 && G.toolLvls.spear>=1,
+    reward:{metal:2,scrap:4}, rewardText:'2金属+4废铁' },
+  { lv:5, name:'科技木筏', half:2, builds:{'0,-2':'purifier','1,-2':'grill','-1,-1':'planter','2,-1':'storage','-2,0':'research','0,1':'bed'},
+    title:'第五章：科技启蒙', obj:'收集60个资源+存活到第4天', check:()=>G.stats.collected>=60 && G.day>=4,
+    reward:{circuit:1,plastic:4}, rewardText:'1电路板+4塑料' },
+  { lv:6, name:'工业木筏', half:3, builds:{'0,-2':'purifier','1,-2':'grill','-1,-1':'planter','2,-1':'storage','-2,0':'research','0,1':'bed','-3,0':'smelter','3,0':'spearstand'},
+    title:'第六章：工业时代', obj:'击败3只鲨鱼+收集80个资源', check:()=>G.stats.killed>=3 && G.stats.collected>=80,
+    reward:{metal:3,bolt:4}, rewardText:'3金属+4螺栓' },
+  { lv:7, name:'繁荣木筏', half:3, builds:{'0,-2':'purifier','1,-2':'grill','-1,-1':'planter','2,-1':'storage','-2,0':'research','0,1':'bed','-3,0':'smelter','3,0':'spearstand','-1,2':'net','1,2':'birdnest'},
+    title:'第七章：繁荣发展', obj:'收集120个资源+存活到第6天', check:()=>G.stats.collected>=120 && G.day>=6,
+    reward:{metal:4,bolt:4}, rewardText:'4金属+4螺栓' },
+  { lv:8, name:'信号木筏', half:3, builds:{'0,-2':'purifier','1,-2':'grill','-1,-1':'planter','2,-1':'storage','-2,0':'research','0,1':'bed','-3,0':'smelter','3,0':'spearstand','-1,2':'net','1,2':'birdnest','-3,-2':'receiver_b','3,-2':'antenna_b'},
+    title:'第八章：信号追踪', obj:'收集160个资源+击败5只鲨鱼', check:()=>G.stats.collected>=160 && G.stats.killed>=5,
+    reward:{receiver:1,antenna:1}, rewardText:'接收器+天线' },
+  { lv:9, name:'航海木筏', half:3, builds:{'0,-2':'purifier','1,-2':'grill','-1,-1':'planter','2,-1':'storage','-2,0':'research','0,1':'bed','-3,0':'smelter','3,0':'spearstand','-1,2':'net','1,2':'birdnest','-3,-2':'receiver_b','3,-2':'antenna_b','0,3':'sail_b'},
+    title:'第九章：扬帆起航', obj:'存活到第8天+收集200个资源', check:()=>G.day>=8 && G.stats.collected>=200,
+    reward:{sail:1,metal:4}, rewardText:'帆+4金属' },
+  { lv:10, name:'救援木筏', half:4, builds:{'0,-3':'purifier','1,-3':'grill','-1,-2':'planter','2,-2':'storage','-2,-1':'research','0,0':'bed','-3,-1':'smelter','3,-1':'spearstand','-1,2':'net','1,2':'birdnest','-3,-3':'receiver_b','3,-3':'antenna_b','0,3':'sail_b','0,4':'beacon_b'},
+    title:'终章：求救信号', obj:'存活到第10天+收集250个资源', check:()=>G.day>=10 && G.stats.collected>=250,
+    reward:{beacon:1}, rewardText:'信标' },
 ];
+
+// ---------- 主线任务系统 ----------
+const QUESTS = RAFT_LEVELS.map((r,i) => ({
+  id:'q'+(i+1),
+  title:r.title,
+  desc:'升级木筏到'+r.name,
+  obj:r.obj,
+  check:r.check,
+  reward:r.reward,
+  rewardText:r.rewardText,
+  next: i<9 ? 'q'+(i+2) : null,
+  onComplete:()=>{
+    upgradeRaft();
+    if(G.raftLevel>=10){
+      setTimeout(()=>gameWin(), 5000);
+    }
+  }
+}));
 function countBuild(type){
   let n=0; for(let k in G.builds) if(G.builds[k].type===type) n++; return n;
 }
@@ -503,6 +518,7 @@ const G = {
   player:{x:0,y:0,vx:0,vy:0,r:14,facing:-Math.PI/2,walkAnim:0},
   raft:[], // {gx,gy,floor:'wood'/'metal',build:null,hp:100}
   raftCenter:{x:0,y:0},
+  raftLevel:1,
   floats:[], // 漂浮物
   hook:null, // {x,y,vx,vy,state:'idle'/'out'/'back',caught:[]}
   shark:null, // {x,y,state,attackTimer,target}
@@ -559,11 +575,54 @@ function resizeCanvas(){
 // ---------- 木筏系统 ----------
 function raftKey(gx,gy){ return gx+','+gy; }
 function initRaft(){
+  let cfg = RAFT_LEVELS[G.raftLevel-1] || RAFT_LEVELS[0];
   G.raft = [];
-  for(let gx=-1;gx<=1;gx++) for(let gy=-1;gy<=1;gy++){
-    G.raft.push({gx,gy,floor:'wood',build:null,hp:100});
+  G.builds = {};
+  let half = cfg.half;
+  for(let gx=-half; gx<=half; gx++){
+    for(let gy=-half; gy<=half; gy++){
+      let tile = {gx,gy,floor:'wood',build:null,hp:100};
+      let key = raftKey(gx,gy);
+      if(cfg.builds[key]){
+        tile.build = cfg.builds[key];
+        G.builds[key] = {type:cfg.builds[key], timer:0};
+      }
+      G.raft.push(tile);
+    }
   }
-  G.raftCenter = {x:0,y:0};
+  G.raftCenter = {x:0, y:0};
+  // 确保玩家在木筏中心
+  G.player.x = 0; G.player.y = 0;
+}
+function upgradeRaft(){
+  if(G.raftLevel >= 10) return;
+  G.raftLevel++;
+  let cfg = RAFT_LEVELS[G.raftLevel-1];
+  let half = cfg.half;
+  // 保留旧建筑数据
+  let oldBuilds = {};
+  for(let k in G.builds) oldBuilds[k] = G.builds[k];
+  // 重建木筏
+  G.raft = [];
+  G.builds = {};
+  for(let gx=-half; gx<=half; gx++){
+    for(let gy=-half; gy<=half; gy++){
+      let key = raftKey(gx,gy);
+      let buildType = cfg.builds[key] || null;
+      let tile = {gx,gy,floor:'wood',build:buildType,hp:100};
+      if(buildType){
+        G.builds[key] = {type:buildType, timer:0};
+      }
+      G.raft.push(tile);
+    }
+  }
+  // 确保玩家在新木筏范围内
+  let pTile = worldToTile(G.player.x, G.player.y);
+  if(!getTile(pTile.gx, pTile.gy)){
+    G.player.x = 0; G.player.y = 0;
+  }
+  toast('🎉 木筏升级为：'+cfg.name+'！(Lv.'+G.raftLevel+')','ach');
+  G.shake = 8;
 }
 function getTile(gx,gy){
   return G.raft.find(t=>t.gx===gx&&t.gy===gy);
@@ -629,7 +688,7 @@ function isoBox(ctx, cx, cy, t, h, colL, colR, colT){
 }
 function isOnRaft(x,y){
   let {gx,gy} = worldToTile(x,y);
-  return getTile(gx,gy) != null;
+  return !!getTile(gx,gy);
 }
 
 // ---------- 物品系统 ----------
@@ -1016,39 +1075,22 @@ function tryBuild(gx,gy,buildId){
   let tile = getTile(gx,gy);
   let b = BUILDS[buildId];
   if(!b) return;
-  if(buildId==='floor'||buildId==='floor_metal'){
-    // 放置新地板：必须与现有地板相邻
-    if(tile) { toast('这里已有地板','bad'); return; }
-    let adjacent = false;
-    for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){
-      if(dx===0&&dy===0)continue;
-      if(getTile(gx+dx,gy+dy)) adjacent=true;
-    }
-    if(!adjacent){ toast('必须紧挨现有木筏建造','bad'); return; }
-    if(!hasItems(b.cost)){ toast('资源不足','bad'); return; }
-    payItems(b.cost);
-    addTile(gx,gy, buildId==='floor_metal'?'metal':'wood');
-    G.stats.built++;
-    toast('搭建了'+b.name,'good');
-    spawnParticle(gx*CFG.TILE,gy*CFG.TILE,b.build?'#5fd0e8':'#c08850',6);
-  } else {
-    // 放置设施：需要已有地板
-    if(!tile){ toast('需要先放地板','bad'); return; }
-    if(tile.build){ toast('这里已有设施','bad'); return; }
-    if(!hasItems(b.cost)){ toast('资源不足','bad'); return; }
-    payItems(b.cost);
-    tile.build = buildId;
-    G.builds[raftKey(gx,gy)] = {type:buildId, timer:0};
-    G.stats.built++;
-    toast('建造了'+b.name,'good');
-    spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#5fd0e8',8);
-    // 研究桌解锁科技
-    if(buildId==='research'){
-      if(!G.researchUnlocked){
-        G.researchUnlocked = true;
-        toast('📐 研究桌建成！科技配方已解锁','ach');
-        updateBuildUI();
-      }
+  // 放置设施：需要已有地板
+  if(!tile){ toast('需要先放地板','bad'); return; }
+  if(tile.build){ toast('这里已有设施','bad'); return; }
+  if(!hasItems(b.cost)){ toast('资源不足','bad'); return; }
+  payItems(b.cost);
+  tile.build = buildId;
+  G.builds[raftKey(gx,gy)] = {type:buildId, timer:0};
+  G.stats.built++;
+  toast('建造了'+b.name,'good');
+  spawnParticle(gx*CFG.TILE,gy*CFG.TILE,'#5fd0e8',8);
+  // 研究桌解锁科技
+  if(buildId==='research'){
+    if(!G.researchUnlocked){
+      G.researchUnlocked = true;
+      toast('📐 研究桌建成！科技配方已解锁','ach');
+      updateBuildUI();
     }
   }
   updateInventoryUI(); updateHotbar(); updateBuildUI();
@@ -1180,8 +1222,10 @@ function updatePlayer(dt){
   let spd=CFG.PLAYER_SPEED;
   let nx=G.player.x+mx*spd, ny=G.player.y+my*spd;
   // 只能在木筏上移动
-  if(isOnRaft(nx,G.player.y)) G.player.x=nx;
-  if(isOnRaft(G.player.x,ny)) G.player.y=ny;
+  // 检查新位置是否在木筏上（考虑玩家半径，防止跑出去）
+  let pr = G.player.r * 0.6;
+  if(isOnRaft(nx,G.player.y) && isOnRaft(nx+pr,G.player.y) && isOnRaft(nx-pr,G.player.y)) G.player.x=nx;
+  if(isOnRaft(G.player.x,ny) && isOnRaft(G.player.x,ny+pr) && isOnRaft(G.player.x,ny-pr)) G.player.y=ny;
   // 限制在木筏范围内(不能掉海)
   // 玩家面向跟随鼠标(仅电脑端非触屏)
   if(!G.input.isTouch && !G.input.joyActive && !G.input.touchThrow){
@@ -1246,42 +1290,21 @@ function updateQuestTracker(){
   $('qtProgress').firstElementChild.style.width = (prog*100)+'%';
 }
 function estimateQuestProgress(q){
-  // 简单估算各任务进度
-  switch(q.id){
-    case 'q1': return Math.min(1, G.stats.collected/10);
-    case 'q2': {
-      let s=0;
-      if(countBuild('purifier')>=1) s+=0.33;
-      if(countBuild('grill')>=1) s+=0.33;
-      if(G.raft.length>=12) s+=0.34;
-      return s;
-    }
-    case 'q3': {
-      let s=0;
-      if(G.stats.killed>=1) s+=0.5;
-      if(G.toolLvls.spear>=1) s+=0.5;
-      return s;
-    }
-    case 'q4': {
-      let s=0;
-      if(countBuild('research')>=1) s+=0.5;
-      if((G.inventory.circuit||0)>=1) s+=0.5;
-      return s;
-    }
-    case 'q5': {
-      let s=0;
-      if(countBuild('receiver_b')>=1) s+=0.5;
-      if(countBuild('antenna_b')>=1) s+=0.5;
-      return s;
-    }
-    case 'q6': {
-      let s=0;
-      if(countBuild('sail_b')>=1) s+=0.5;
-      if(G.day>=4) s+=0.5;
-      return s;
-    }
-    case 'q7': return countBuild('beacon_b')>=1?1:0;
-  }
+  let idx = parseInt(q.id.substring(1))-1;
+  let cfg = RAFT_LEVELS[idx];
+  if(!cfg) return 0;
+  if(cfg.check()) return 1;
+  // 粗略估算
+  if(q.id==='q1') return Math.min(1, G.stats.collected/10);
+  if(q.id==='q2') return Math.min(1, G.stats.collected/20*0.5 + Math.min(1,G.day/2)*0.5);
+  if(q.id==='q3') return Math.min(1, G.stats.killed/1);
+  if(q.id==='q4') return Math.min(1, G.stats.collected/40*0.5 + G.toolLvls.spear*0.5);
+  if(q.id==='q5') return Math.min(1, G.stats.collected/60*0.5 + Math.min(1,G.day/4)*0.5);
+  if(q.id==='q6') return Math.min(1, G.stats.killed/3*0.5 + G.stats.collected/80*0.5);
+  if(q.id==='q7') return Math.min(1, G.stats.collected/120*0.5 + Math.min(1,G.day/6)*0.5);
+  if(q.id==='q8') return Math.min(1, G.stats.collected/160*0.5 + G.stats.killed/5*0.5);
+  if(q.id==='q9') return Math.min(1, Math.min(1,G.day/8)*0.5 + G.stats.collected/200*0.5);
+  if(q.id==='q10') return Math.min(1, Math.min(1,G.day/10)*0.5 + G.stats.collected/250*0.5);
   return 0;
 }
 function checkQuestProgress(){
@@ -1295,10 +1318,12 @@ function checkQuestProgress(){
     }
     toast('✅ '+q.title+' 完成！奖励：'+q.rewardText,'ach');
     if(q.onComplete) q.onComplete();
+    // 研究桌在5级自动解锁
+    if(G.raftLevel>=5) G.researchUnlocked = true;
     // 研究桌解锁
     if(q.id==='q4') G.researchUnlocked = true;
-    // 信标解锁
-    if(q.id==='q6') { /* beacon recipe already in RECIPES */ }
+    // 信标在10级自动解锁
+    if(G.raftLevel>=9) { /* sail recipe already in RECIPES */ }
     // 进入下一任务
     if(q.next){
       G.currentQuestIdx++;
@@ -3337,7 +3362,7 @@ function craftItem(id){
 function updateBuildUI(){
   let grid=$('buildGrid');
   // 按分类分组
-  let cats=['木筏','房屋','设施','科技'];
+  let cats=['设施','科技'];
   grid.innerHTML='';
   for(let cat of cats){
     let hasCat=false;
@@ -3451,6 +3476,7 @@ function startGame(){
   G.researchUnlocked=false; G.sailing=false; G.sailSpeed=0; G.sailDir=0;
   G.signalDir=Math.random()*TAU;
   G.raftCenter={x:0,y:0};
+  G.raftLevel=1;
   initRaft();
   spawnShark();
   G.shark.attackTimer = CFG.SHARK_ATTACK_INTERVAL;
@@ -3495,7 +3521,6 @@ function initInput(){
     G.input.keys[k]=true;
     if(k==='b') togglePanel('inventoryPanel');
     if(k==='c') togglePanel('craftPanel');
-    if(k==='tab'){ e.preventDefault(); togglePanel('buildPanel'); }
     if(k==='e') interact();
     if(k==='q') showQuestInfo();
     if(k==='escape'){ closeAllPanels(); G.selectedBuild=null; $('buildHint').style.display='none'; }
@@ -3643,7 +3668,6 @@ function initButtons(){
   $('winRestart').onclick=startGame;
   $('btnInventory').onclick=()=>togglePanel('inventoryPanel');
   $('btnCraft').onclick=()=>togglePanel('craftPanel');
-  $('btnBuild').onclick=()=>togglePanel('buildPanel');
   $('btnQuest').onclick=showQuestInfo;
   $('btnPause').onclick=()=>{
     if(G.state==='playing'){ G.state='paused'; toast('⏸️ 已暂停',''); }
